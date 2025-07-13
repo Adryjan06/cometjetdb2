@@ -65,6 +65,10 @@ function sendEmail(to, subject, text) {
   });
 }
 
+app.get('/api/keepalive', (req, res) => {
+  res.status(200).json({ message: 'OK' });
+});
+
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
 
 app.get('/api/applications', async (req, res) => {
