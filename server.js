@@ -66,6 +66,7 @@ function sendEmail(to, subject, text) {
 }
 
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
+
 app.get('/api/applications', async (req, res) => {
   const { data, error } = await supabase.from('submissions').select('*').order('created_at', { ascending: false });
   if (error) return res.status(500).json({ error: "Błąd bazy danych" });
