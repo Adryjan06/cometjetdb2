@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel administratora</title>
+</head>
+<body style="background:#111; color:#fff; font-family:sans-serif;">
+  <h1 style="text-align:center">Panel administratora</h1>
+  <% submissions.forEach(function(sub) { %>
+    <div style="border:1px solid #666; margin:20px auto; padding:20px; max-width:600px;">
+      <p><strong>Imię i nazwisko:</strong> <%= sub.name %></p>
+      <p><strong>Email:</strong> <%= sub.email %></p>
+      <p><strong>Callsign:</strong> <%= sub.callsign %></p>
+      <p><strong>Doświadczenie:</strong> <%= sub.experience %></p>
+      <p><strong>Dlaczego:</strong> <%= sub.reason %></p>
+      <p><strong>Status:</strong> <%= sub.status %></p>
+      <form action="/action" method="POST" style="display:inline;">
+        <input type="hidden" name="id" value="<%= sub.id %>"/>
+        <input type="hidden" name="action" value="accept"/>
+        <button type="submit">Akceptuj</button>
+      </form>
+      <form action="/action" method="POST" style="display:inline;">
+        <input type="hidden" name="id" value="<%= sub.id %>"/>
+        <input type="hidden" name="action" value="reject"/>
+        <button type="submit">Odrzuć</button>
+      </form>
+    </div>
+  <% }); %>
+</body>
+</html>
