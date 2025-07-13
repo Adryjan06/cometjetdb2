@@ -32,7 +32,7 @@ app.get('/admin', async (req, res) => {
   res.render("admin", { submissions: data });
 });
 
-app.post('/action', async (req, res) => {
+app.post('/api/action', async (req, res) => {
   const { id, action } = req.body;
   const { data, error } = await supabase.from('submissions').select('*').eq('id', id).single();
   if (!data || error) return res.redirect('/admin');
