@@ -85,22 +85,19 @@ app.post('/api/send-email', async (req, res) => {
   }
 
   try {
-    await new Promise((resolve, reject) => {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: 'jch29jc@gmail.com',
-          pass: 'dtmuyqcnyquwmfgp'
-        }
-      });
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: 'jch29jc@gmail.com',         // Twój email
+        pass: 'dtmuyqcnyquwmfgp'           // Hasło aplikacji lub token SMTP
+      }
+    });
 
-      transporter.sendMail(
-        { from: 'jch29jc@gmail.com', to, subject, text: message },
-        (err, info) => {
-          if (err) reject(err);
-          else resolve(info);
-        }
-      );
+    await transporter.sendMail({
+      from: 'jch29jc@gmail.com',
+      to,
+      subject,
+      text: message
     });
 
     res.status(200).json({ message: 'Email wysłany' });
