@@ -76,3 +76,36 @@ app.get('/api/applications', async (req, res) => {
   if (error) return res.status(500).json({ error: "Błąd bazy danych" });
   res.json(data);
 });
+
+app.post('/api/send-email', async (req, res) => {
+  const { to, subject, message } = req.body;
+
+  if (!to || !subject || !message) {
+    return res.status(400).json({ error: 'Brak wymaganych pól: to, subject, message' });
+  }
+
+  try {
+    await new Promise((resolve, reject) => {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: 'jch29jc@gmail.com',
+          pass: 'dtmuyqcnyquwmfgp'
+        }
+      });
+
+      transporter.sendMail(
+        { from: 'jch29jc@gmail.com', to, subject, text: message },
+        (err, info) => {
+          if (err) reject(err);
+          else resolve(info);
+        }
+      );
+    });
+
+    res.status(200).json({ message: 'Email wysłany' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Błąd podczas wysyłania maila' });
+  }
+});
