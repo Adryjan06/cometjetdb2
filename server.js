@@ -3,20 +3,16 @@ const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
 const path = require('path');
 const supabase = require('./supabaseClient');
-
 const cors = require('cors');
 
-// Zezwól na żądania z Twojej domeny frontendu
-const allowedOrigins = [
-  'https://twoja-strona.com',
-  'http://localhost:3000'
-];
+const app = express();
+const PORT = process.env.PORT || 3000;
 
+// CORS configuration
+const allowedOrigins = ['https://twoja-strona.com', 'http://localhost:3000'];
 app.use(cors({
   origin: function (origin, callback) {
-    // Zezwól na żądania bez origin (np. Postman)
     if (!origin) return callback(null, true);
-    
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
@@ -27,15 +23,28 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-const app = express();
-app.use(cors());
-const PORT = process.env.PORT || 3000;
-
+// Middleware
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+// Email sending function
+function sendEmail(to, subject, text) {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: 'jch29jc@gmail.com',
+      pass: 'dtmuyqcnyquwmfgp'
+    }
+  });
+  transporter.sendMail({ from: 'jch29jc@gmail.com', to, subject, text }, (err, info) => {
+    if (err) console.error(err);
+    else console.log("Mail wysłany: " + info.response);
+  });
+}
+
+// Endpoints
 app.post('/api/submit', async (req, res) => {
   const { name, email, callsign, experience, reason } = req.body;
   const { data, error } = await supabase
@@ -73,22 +82,6 @@ app.post('/api/action', async (req, res) => {
   res.redirect('/admin');
 });
 
-function sendEmail(to, subject, text) {
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: 'jch29jc@gmail.com',
-      pass: 'dtmuyqcnyquwmfgp'
-    }
-  });
-  transporter.sendMail({ from: 'jch29jc@gmail.com', to, subject, text }, (err, info) => {
-    if (err) console.error(err);
-    else console.log("Mail wysłany: " + info.response);
-  });
-}
-
-app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
-
 app.get('/api/applications', async (req, res) => {
   const { data, error } = await supabase.from('submissions').select('*').order('created_at', { ascending: false });
   if (error) return res.status(500).json({ error: "Błąd bazy danych" });
@@ -97,7 +90,6 @@ app.get('/api/applications', async (req, res) => {
 
 app.post('/api/send-email', async (req, res) => {
   const { to, subject, message } = req.body;
-
   if (!to || !subject || !message) {
     return res.status(400).json({ error: 'Brak wymaganych pól: to, subject, message' });
   }
@@ -106,8 +98,8 @@ app.post('/api/send-email', async (req, res) => {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: 'jch29jc@gmail.com',         // Twój email
-        pass: 'dtmuyqcnyquwmfgp'           // Hasło aplikacji lub token SMTP
+        user: 'jch29jc@gmail.com',
+        pass: 'dtmuyqcnyquwmfgp'
       }
     });
 
@@ -123,96 +115,6 @@ app.post('/api/send-email', async (req, res) => {
     console.error(error);
     res.status(500).json({ error: 'Błąd podczas wysyłania maila' });
   }
-});
-
-// server.js - dodaj te endpointy
-
-// Pobierz wszystkie posty (dla strony blog)
-app.get('/api/posts', async (req, res) => {
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('is_published', true)
-    .order('created_at', { ascending: false });
-
-  if (error) return res.status(500).json({ error: "Database error" });
-  res.json(data);
-});
-
-// Pobierz pojedynczy post (dla strony szczegółów)
-app.get('/api/posts/:id', async (req, res) => {
-  const { id } = req.params;
-  const { data, error } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error || !data) return res.status(404).json({ error: "Post not found" });
-  res.json(data);
-});
-
-// Utwórz/edytuj post (tylko dla admina)
-app.post('/api/posts', async (req, res) => {
-  const { id, title, content, author, image_url, is_published } = req.body;
-  
-  // Walidacja
-  if (!title || !content) {
-    return res.status(400).json({ error: "Title and content are required" });
-  }
-
-  const postData = {
-    title,
-    content,
-    author: author || "Admin",
-    image_url,
-    is_published: is_published || false,
-    updated_at: new Date().toISOString()
-  };
-
-  try {
-    let data;
-    if (id) {
-      // Edycja istniejącego posta
-      const { data: updated, error } = await supabase
-        .from('posts')
-        .update(postData)
-        .eq('id', id)
-        .select()
-        .single();
-      
-      if (error) throw error;
-      data = updated;
-    } else {
-      // Nowy post
-      const { data: created, error } = await supabase
-        .from('posts')
-        .insert([postData])
-        .select()
-        .single();
-      
-      if (error) throw error;
-      data = created;
-    }
-
-    res.status(200).json(data);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Database error" });
-  }
-});
-
-// Usuń post (tylko dla admina)
-app.delete('/api/posts/:id', async (req, res) => {
-  const { id } = req.params;
-  
-  const { error } = await supabase
-    .from('posts')
-    .delete()
-    .eq('id', id);
-
-  if (error) return res.status(500).json({ error: "Database error" });
-  res.status(200).json({ message: "Post deleted" });
 });
 
 app.get('/api/posts', async (req, res) => {
@@ -234,7 +136,6 @@ app.get('/api/posts', async (req, res) => {
   }
 });
 
-// Pobierz pojedynczy post
 app.get('/api/posts/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -254,11 +155,8 @@ app.get('/api/posts/:id', async (req, res) => {
   }
 });
 
-// Utwórz/edytuj post (tylko dla admina)
 app.post('/api/posts', async (req, res) => {
   const { id, title, content, author, image_url, is_published } = req.body;
-  
-  // Walidacja
   if (!title || !content) {
     return res.status(400).json({ error: "Title and content are required" });
   }
@@ -275,28 +173,23 @@ app.post('/api/posts', async (req, res) => {
   try {
     let data;
     if (id) {
-      // Aktualizacja istniejącego posta
       const { data: updated, error } = await supabase
         .from('posts')
         .update(postData)
         .eq('id', id)
         .select()
         .single();
-      
       if (error) throw error;
       data = updated;
     } else {
-      // Nowy post
       const { data: created, error } = await supabase
         .from('posts')
         .insert([postData])
         .select()
         .single();
-      
       if (error) throw error;
       data = created;
     }
-
     res.status(200).json(data);
   } catch (error) {
     console.error('Database error:', error);
@@ -304,7 +197,6 @@ app.post('/api/posts', async (req, res) => {
   }
 });
 
-// Usuń post (tylko dla admina)
 app.delete('/api/posts/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -320,3 +212,5 @@ app.delete('/api/posts/:id', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
