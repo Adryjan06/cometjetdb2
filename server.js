@@ -9,7 +9,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // CORS configuration
-const allowedOrigins = ['https://twoja-strona.com', 'http://localhost:3000'];
+const allowedOrigins = ['https://twoja-strona.com', 'http://localhost:3000','https://comet-jet-site.vercel.app/'];
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
