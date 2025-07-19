@@ -9,15 +9,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // CORS configuration
-const allowedOrigins = ['https://twoja-strona.com', 'http://localhost:3000','https://comet-jet-site.vercel.app/'];
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+const allowedOrigins = ['https://twoja-strona.com', 'http://localhost:3000', 'https://comet-jet-site.vercel.app'];
+
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
+    if (!origin) return callback(null, true); // Pozwól na żądania bez origin (np. Postman)
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
@@ -62,10 +58,45 @@ app.post('/api/submit', async (req, res) => {
   res.sendStatus(200);
 });
 
-app.get('/admin', async (req, res) => {
-  const { data, error } = await supabase.from('submissions').select('*').order('created_at', { ascending: false });
-  if (error) return res.send("Błąd bazy danych");
-  res.render("admin", { submissions: data });
+app.get('/api/applications', async (req, res) => {
+  try {
+    console.log('Fetching applications from Supabase...');
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error in /api/applications:', error);
+      return res.status(500).json({ error: 'Database error', details: error.message });
+    }
+    console.log('Applications fetched:', data);
+    res.json(data);
+  } catch (err) {
+    console.error('Server error in /api/applications:', err);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
+app.get('/api/posts', async (req, res) => {
+  try {
+    console.log('Fetching posts from Supabase...');
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('is_published', true)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error in /api/posts:', error);
+      return res.status(500).json({ error: 'Database error', details: error.message });
+    }
+    console.log('Posts fetched:', data);
+    res.json(data);
+  } catch (err) {
+    console.error('Server error in /api/posts:', err);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
 });
 
 app.post('/api/action', async (req, res) => {
@@ -85,12 +116,6 @@ app.post('/api/action', async (req, res) => {
   sendEmail(data.email, subject, msg);
   await supabase.from('submissions').update({ status: action }).eq('id', id);
   res.redirect('/admin');
-});
-
-app.get('/api/applications', async (req, res) => {
-  const { data, error } = await supabase.from('submissions').select('*').order('created_at', { ascending: false });
-  if (error) return res.status(500).json({ error: "Błąd bazy danych" });
-  res.json(data);
 });
 
 app.post('/api/send-email', async (req, res) => {
