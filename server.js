@@ -31,6 +31,9 @@ app.use(bodyParser.json());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+// Serve static files (for potential frontend assets)
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Email sending function
 async function sendEmail(to, subject, content, isHtml = false) {
   const transporter = nodemailer.createTransport({
@@ -64,7 +67,7 @@ app.post('/api/submit', async (req, res) => {
     .from('submissions')
     .insert([{ name, email, callsign, experience, reason }]);
 
-  if (error) return res.status(500).send("Database error");
+  if (error) return res.status(500).send("Błąd bazy danych");
 
   await sendEmail(email, "Thank you for your application!", "Your application has been accepted. We will get back to you within 3 days.");
   res.sendStatus(200);
@@ -111,16 +114,39 @@ app.get('/api/posts', async (req, res) => {
   }
 });
 
+// Dodany endpoint GET /admin
+app.get('/admin', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error in /admin:', error);
+      return res.status(500).send('Błąd bazy danych');
+    }
+
+    res.render('admin', { applications: data });
+  } catch (err) {
+    console.error('Błąd serwera w /admin:', err);
+    res.status(500).send('Wewnętrzny błąd serwera');
+  }
+});
+
 app.post('/api/action', async (req, res) => {
   const { id, action } = req.body;
   const { data, error } = await supabase.from('submissions').select('*').eq('id', id).single();
-  if (!data || error) return res.redirect('/admin');
+  if (!data || error) {
+    console.error('Błąd pobierania zgłoszenia:', error);
+    return res.status(404).send('Zgłoszenie nie znalezione');
+  }
 
   try {
     if (action === "accept") {
       const emailContent = await ejs.renderFile(
         path.join(__dirname, 'views', 'email-template.ejs'),
-        { name: data.name } // Pass the applicant's name to the template
+        { name: data.name }
       );
       await sendEmail(data.email, "Welcome to CometJet!", emailContent, true);
     } else {
@@ -145,23 +171,23 @@ CometJet VA CEOs
     await supabase.from('submissions').update({ status: action }).eq('id', id);
     res.redirect('/admin');
   } catch (err) {
-    console.error('Error in /api/action:', err);
-    res.status(500).send('Error processing action');
+    console.error('Błąd w /api/action:', err);
+    res.status(500).send('Błąd przetwarzania akcji');
   }
 });
 
 app.post('/api/send-email', async (req, res) => {
   const { to, subject, message } = req.body;
   if (!to || !subject || !message) {
-    return res.status(400).json({ error: 'Missing required fields: to, subject, message' });
+    return res.status(400).json({ error: 'Brak wymaganych pól: to, subject, message' });
   }
 
   try {
     await sendEmail(to, subject, message);
-    res.status(200).json({ message: 'Email sent' });
+    res.status(200).json({ message: 'Email wysłany' });
   } catch (error) {
-    console.error('Error sending email:', error);
-    res.status(500).json({ error: 'Error sending email' });
+    console.error('Błąd wysyłania emaila:', error);
+    res.status(500).json({ error: 'Błąd wysyłania emaila' });
   }
 });
 
@@ -221,7 +247,7 @@ app.post('/api/posts', async (req, res) => {
     }
     res.status(200).json(data);
   } catch (error) {
-    console.error('Database error:', error);
+    console.error('Błąd bazy danych:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -237,9 +263,9 @@ app.delete('/api/posts/:id', async (req, res) => {
     if (error) throw error;
     res.status(200).json({ message: "Post deleted" });
   } catch (error) {
-    console.error('Database error:', error);
+    console.error('Błąd bazy danych:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
