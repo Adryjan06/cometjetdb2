@@ -14,7 +14,7 @@ const allowedOrigins = ['https://twoja-strona.com', 'http://localhost:3000', 'ht
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // Allow requests without origin (e.g., Postman)
+    if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
@@ -30,8 +30,6 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
-
-// Serve static files (for potential frontend assets)
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Email sending function
@@ -67,7 +65,10 @@ app.post('/api/submit', async (req, res) => {
     .from('submissions')
     .insert([{ name, email, callsign, experience, reason }]);
 
-  if (error) return res.status(500).send("Błąd bazy danych");
+  if (error) {
+    console.error('Supabase error in /api/submit:', error);
+    return res.status(500).send("Błąd bazy danych");
+  }
 
   await sendEmail(email, "Thank you for your application!", "Your application has been accepted. We will get back to you within 3 days.");
   res.sendStatus(200);
@@ -114,8 +115,8 @@ app.get('/api/posts', async (req, res) => {
   }
 });
 
-// Dodany endpoint GET /admin
 app.get('/admin', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
   try {
     const { data, error } = await supabase
       .from('submissions')
@@ -127,7 +128,7 @@ app.get('/admin', async (req, res) => {
       return res.status(500).send('Błąd bazy danych');
     }
 
-    res.render('admin', { applications: data });
+    res.render('admin', { applications: data || [] });
   } catch (err) {
     console.error('Błąd serwera w /admin:', err);
     res.status(500).send('Wewnętrzny błąd serwera');
@@ -140,6 +141,11 @@ app.post('/api/action', async (req, res) => {
   if (!data || error) {
     console.error('Błąd pobierania zgłoszenia:', error);
     return res.status(404).send('Zgłoszenie nie znalezione');
+  }
+
+  if (data.status === 'accept' || data.status === 'reject') {
+    console.log(`Zgłoszenie ${id} już ma status: ${data.status}`);
+    return res.redirect('/admin');
   }
 
   try {
@@ -265,6 +271,25 @@ app.delete('/api/posts/:id', async (req, res) => {
   } catch (error) {
     console.error('Błąd bazy danych:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Debug endpoint
+app.get('/debug', async (req, res) => {
+  const fs = require('fs');
+  const filePath = path.join(__dirname, 'views', 'admin.ejs');
+  try {
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) {
+      res.send('Błąd Supabase: ' + error.message);
+    } else {
+      res.send(`Plik admin.ejs istnieje: ${fs.existsSync(filePath) ? 'Tak' : 'Nie'}<br>Dane z Supabase: ${JSON.stringify(data)}`);
+    }
+  } catch (err) {
+    res.send('Błąd serwera: ' + err.message);
   }
 });
 
