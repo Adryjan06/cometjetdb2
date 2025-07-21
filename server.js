@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
 const path = require('path');
+const ejs = require('ejs');
 const supabase = require('./supabaseClient');
 const cors = require('cors');
 
@@ -13,7 +14,7 @@ const allowedOrigins = ['https://twoja-strona.com', 'http://localhost:3000', 'ht
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // Pozwól na żądania bez origin (np. Postman)
+    if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) === -1) {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
@@ -24,28 +25,27 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Middleware
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Email sending function
-function sendEmail(to, subject, text) {
+// Email sending function - HTML version
+function sendEmail(to, subject, html) {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: 'jch29jc@gmail.com',
-      pass: 'dtmuyqcnyquwmfgp'
+      user: 'hello.cometjet@gmail.com',
+      pass: 'bmlidtluamybfyal'
     }
   });
-  transporter.sendMail({ from: 'jch29jc@gmail.com', to, subject, text }, (err, info) => {
+
+  transporter.sendMail({ from: 'hello.cometjet@gmail.com', to, subject, html }, (err, info) => {
     if (err) console.error(err);
     else console.log("Mail wysłany: " + info.response);
   });
 }
 
-// Endpoints
 app.post('/api/submit', async (req, res) => {
   const { name, email, callsign, experience, reason } = req.body;
   const { data, error } = await supabase
@@ -54,47 +54,20 @@ app.post('/api/submit', async (req, res) => {
 
   if (error) return res.status(500).send("Błąd bazy danych");
 
-  sendEmail(email, "Dziękujemy za zgłoszenie", "Twoja aplikacja została przyjęta. Odezwiemy się w ciągu 3 dni.");
+  sendEmail(email, "Thank you for your application!", "Your application has been accepted. We will get back to you within 3 days.");
   res.sendStatus(200);
 });
 
 app.get('/api/applications', async (req, res) => {
   try {
-    console.log('Fetching applications from Supabase...');
     const { data, error } = await supabase
       .from('submissions')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Supabase error in /api/applications:', error);
-      return res.status(500).json({ error: 'Database error', details: error.message });
-    }
-    console.log('Applications fetched:', data);
+    if (error) return res.status(500).json({ error: 'Database error', details: error.message });
     res.json(data);
   } catch (err) {
-    console.error('Server error in /api/applications:', err);
-    res.status(500).json({ error: 'Internal server error', details: err.message });
-  }
-});
-
-app.get('/api/posts', async (req, res) => {
-  try {
-    console.log('Fetching posts from Supabase...');
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('is_published', true)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Supabase error in /api/posts:', error);
-      return res.status(500).json({ error: 'Database error', details: error.message });
-    }
-    console.log('Posts fetched:', data);
-    res.json(data);
-  } catch (err) {
-    console.error('Server error in /api/posts:', err);
     res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 });
@@ -104,16 +77,17 @@ app.post('/api/action', async (req, res) => {
   const { data, error } = await supabase.from('submissions').select('*').eq('id', id).single();
   if (!data || error) return res.redirect('/admin');
 
-  let subject = "", msg = "";
+  const subject = "CometJet - Recruitment Outcome Notification";
+
   if (action === "accept") {
-    subject = "Gratulacje!";
-    msg = "Zostałeś przyjęty do CometJet Virtual Airlines.";
+    const html = await ejs.renderFile(path.join(__dirname, 'views', 'email-template.ejs'), {
+      name: data.name
+    });
+    sendEmail(data.email, subject, html);
   } else {
-    subject = "Dziękujemy za zgłoszenie";
-    msg = "Niestety nie zakwalifikowałeś się.";
+    sendEmail(data.email, subject, "Niestety nie zakwalifikowałeś się.");
   }
 
-  sendEmail(data.email, subject, msg);
   await supabase.from('submissions').update({ status: action }).eq('id', id);
   res.redirect('/admin');
 });
@@ -128,13 +102,13 @@ app.post('/api/send-email', async (req, res) => {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: 'jch29jc@gmail.com',
-        pass: 'dtmuyqcnyquwmfgp'
+        user: 'hello.cometjet@gmail.com',
+        pass: 'bmlidtluamybfyal'
       }
     });
 
     await transporter.sendMail({
-      from: 'jch29jc@gmail.com',
+      from: 'hello.cometjet@gmail.com',
       to,
       subject,
       text: message
