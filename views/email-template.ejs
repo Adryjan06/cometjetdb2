@@ -4,40 +4,240 @@
   <meta charset="UTF-8">
   <title>Welcome to CometJet!</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; color: #000; line-height: 1.6; }
-    h1 { color: #7f3fbf; font-size: 24px; }
-    a { color: #7f3fbf; text-decoration: none; }
-    .highlight { color: #7f3fbf; font-weight: bold; }
-    hr { border: none; border-top: 1px solid #ccc; margin: 20px 0; }
-    .footer { margin-top: 30px; font-style: italic; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+      padding: 20px;
+    }
+    
+    .email-container {
+      max-width: 700px;
+      margin: 0 auto;
+      background-color: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #4a00e0, #8e2de2);
+      padding: 30px 40px;
+      text-align: center;
+      color: white;
+    }
+    
+    .header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 5px;
+      letter-spacing: 1px;
+    }
+    
+    .logo {
+      width: 120px;
+      margin-bottom: 20px;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    }
+    
+    .content {
+      padding: 40px;
+    }
+    
+    .greeting {
+      font-size: 18px;
+      margin-bottom: 25px;
+    }
+    
+    .message {
+      margin-bottom: 30px;
+    }
+    
+    .message p {
+      margin-bottom: 15px;
+    }
+    
+    .highlight {
+      color: #7f3fbf;
+      font-weight: bold;
+    }
+    
+    .section-title {
+      font-size: 20px;
+      color: #7f3fbf;
+      margin: 25px 0 15px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+    
+    .aircraft-list {
+      background-color: #f9f5ff;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      border-left: 4px solid #7f3fbf;
+    }
+    
+    .aircraft-item {
+      margin-bottom: 15px;
+    }
+    
+    .note-box {
+      background-color: #fff7e6;
+      border-left: 4px solid #ffa940;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .action-section {
+      background-color: #f0f5ff;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 25px 0;
+    }
+    
+    .btn {
+      display: inline-block;
+      background: linear-gradient(135deg, #4a00e0, #8e2de2);
+      color: white;
+      padding: 12px 25px;
+      text-decoration: none;
+      border-radius: 30px;
+      font-weight: 600;
+      margin: 10px 5px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba(138, 43, 226, 0.3);
+    }
+    
+    .btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 15px rgba(138, 43, 226, 0.4);
+    }
+    
+    .platform-section {
+      margin: 25px 0;
+    }
+    
+    .discord-section {
+      background-color: #5865F2;
+      color: white;
+      padding: 25px;
+      text-align: center;
+      border-radius: 8px;
+      margin: 30px 0;
+    }
+    
+    .discord-section a {
+      color: white;
+      font-weight: bold;
+      text-decoration: underline;
+    }
+    
+    .footer {
+      text-align: center;
+      padding: 25px;
+      background-color: #f8f9fa;
+      color: #6c757d;
+      font-size: 14px;
+    }
+    
+    .signature {
+      font-style: italic;
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    
+    hr {
+      border: none;
+      border-top: 1px solid #e0e0e0;
+      margin: 25px 0;
+    }
+    
+    a {
+      color: #7f3fbf;
+      font-weight: bold;
+      text-decoration: none;
+    }
+    
+    a:hover {
+      text-decoration: underline;
+    }
+    
+    ul {
+      padding-left: 20px;
+      margin: 10px 0;
+    }
+    
+    li {
+      margin-bottom: 8px;
+    }
+    
+    .important-note {
+      color: #ff4d4f;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
-  <h1>Welcome to CometJet!</h1>
-  <p>Dear <%= name %>,</p>
-
-  <p>We are happy to inform you that you have been accepted as a pilot in CometJet. Congratulations! We are sure that we are leaving one of our aircraft in good hands.</p>
-
-  <p>Your application and passion for aviation made a great impression on us. Your enthusiasm fits perfectly with our mission to provide the highest quality aviation services to our passengers.</p>
-
-  <hr />
-
-  <p>To fully join CometJet crew, you must join our airline on the <a href="#">Newsky platform</a>. It allows you to organize, track and save all your flights.</p>
-
-  <p>Before your first flight, please read the SOP (Standard Operating Procedures) and download the livery for your aircraft, which you can find by clicking <a href="#">HERE</a>.</p>
-
-  <p><strong>Need training?</strong> Don’t worry! You can sign up for our official training <a href="#">HERE</a>.</p>
-
-  <hr />
-
-  <p><strong>FOR MSFS PLAYERS:</strong><br />We recommend downloading the MSFS add-on for Katowice–Pyrzowice Airport EPKT. It’s our HUB, so this will help a lot. Download it <a href="#">HERE</a>.</p>
-
-  <hr />
-
-  <p>Join our Discord to access all information and ask questions anytime!</p>
-
-  <p class="footer">KayJaykay and Airaced – CometJet VA CEOs</p>
-
-  <p><img src="https://i.imgur.com/L2ECQuk.png" width="100" alt="CometJet Logo" /></p>
+  <div class="email-container">
+    <div class="header">
+      <img src="https://i.imgur.com/L2ECQuk.png" alt="CometJet Logo" class="logo">
+      <h1>Welcome to CometJet!</h1>
+    </div>
+    
+    <div class="content">
+      <div class="greeting">
+        <p>Dear <%= name %>,</p>
+      </div>
+      
+      <div class="message">
+        <p>We are happy to inform you that you have been accepted as a pilot in CometJet. Congratulations! We are sure that we are leaving one of our aircraft in good hands.</p>
+        
+        <p>Your application you sent made a great impression on us. Your enthusiasm and passion for aviation are in line with our mission to provide the highest quality aviation services to our passengers.</p>
+      </div>
+      
+      <div class="action-section">
+        <p>To fully join CometJet crew, you must join our airline on the licensed platform. It allows you to organize, track and save all your flights.</p>
+        
+        <p>Before performing your first flight, please read the SOP (Standard Operating Procedures) and download the proxy for your aircraft, which you can find by clicking <a href="www.cs.downloads">HERE</a>.</p>
+        
+        <p>Do you need training? Don't worry! You can sign up for our official training <a href="#">HERE</a>. Our comprehensive programs are designed to ensure you gain the knowledge and experience necessary to fly for CometJet VA.</p>
+        
+        <div style="text-align: center; margin-top: 20px;">
+          <a href="#" class="btn">Join Our Platform</a>
+          <a href="www.cs.downloads" class="btn">Download SOP & Proxy</a>
+        </div>
+      </div>
+      
+      <div class="section-title">For MSPs Players</div>
+      
+      <div class="platform-section">
+        <p>For better performance, we recommend downloading the MSPs add-on. Katowice Pyrawnice Airport EPKT, due to the fact that this airport is a CometJet Hub airport, which means that you will be at this airport quite often.</p>
+        
+        <p>To download the add-on click <a href="#">HERE</a></p>
+      </div>
+      
+      <div class="discord-section">
+        <h3>Join Our Community!</h3>
+        <p>Join our Discord to have access to all the information and contact us if you have any questions.</p>
+        <a href="#" class="btn" style="background: #7289DA;">Join Discord Now</a>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p><img src="https://i.imgur.com/L2ECQuk.png" alt="CometJet Logo" width="80"></p>
+      <p class="signature">KayoJayoKayo and Aviaced - CometJet VA CEOs</p>
+      <p>CometJet Virtual Airlines | www.cometjet-va.com</p>
+    </div>
+  </div>
 </body>
 </html>
