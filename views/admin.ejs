@@ -2,29 +2,52 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <title>Panel administratora</title>
+  <title>Panel Administracyjny CometJet</title>
+  <style>
+    table { border-collapse: collapse; width: 100%; max-width: 800px; margin: 20px auto; }
+    th, td { border: 1px solid #666; padding: 10px; text-align: left; }
+    body { background: #111; color: #fff; font-family: sans-serif; }
+    h1 { text-align: center; }
+    .application { border: 1px solid #666; margin: 20px auto; padding: 20px; max-width: 600px; }
+    button { margin: 5px; padding: 5px 10px; }
+  </style>
 </head>
-<body style="background:#111; color:#fff; font-family:sans-serif;">
-  <h1 style="text-align:center">Panel administratora</h1>
-  <% submissions.forEach(function(sub) { %>
-    <div style="border:1px solid #666; margin:20px auto; padding:20px; max-width:600px;">
-      <p><strong>Imię i nazwisko:</strong> <%= sub.name %></p>
-      <p><strong>Email:</strong> <%= sub.email %></p>
-      <p><strong>Callsign:</strong> <%= sub.callsign %></p>
-      <p><strong>Doświadczenie:</strong> <%= sub.experience %></p>
-      <p><strong>Dlaczego:</strong> <%= sub.reason %></p>
-      <p><strong>Status:</strong> <%= sub.status %></p>
-      <form action="/action" method="POST" style="display:inline;">
-        <input type="hidden" name="id" value="<%= sub.id %>"/>
-        <input type="hidden" name="action" value="accept"/>
-        <button type="submit">Akceptuj</button>
-      </form>
-      <form action="/action" method="POST" style="display:inline;">
-        <input type="hidden" name="id" value="<%= sub.id %>"/>
-        <input type="hidden" name="action" value="reject"/>
-        <button type="submit">Odrzuć</button>
-      </form>
-    </div>
-  <% }); %>
+<body>
+  <h1>Panel Administracyjny CometJet</h1>
+  <h2>Zgłoszenia</h2>
+  <% if (applications && applications.length > 0) { %>
+    <table>
+      <tr>
+        <th>ID</th>
+        <th>Imię i nazwisko</th>
+        <th>Email</th>
+        <th>Callsign</th>
+        <th>Doświadczenie</th>
+        <th>Powód</th>
+        <th>Status</th>
+        <th>Akcje</th>
+      </tr>
+      <% applications.forEach(function(app) { %>
+        <tr>
+          <td><%= app.id %></td>
+          <td><%= app.name %></td>
+          <td><%= app.email %></td>
+          <td><%= app.callsign %></td>
+          <td><%= app.experience %></td>
+          <td><%= app.reason %></td>
+          <td><%= app.status || 'Oczekujące' %></td>
+          <td>
+            <form action="/api/action" method="POST" onsubmit="return confirm('Czy na pewno chcesz wykonać tę akcję?');">
+              <input type="hidden" name="id" value="<%= app.id %>">
+              <button type="submit" name="action" value="accept">Akceptuj</button>
+              <button type="submit" name="action" value="reject">Odrzuć</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </table>
+  <% } else { %>
+    <p style="text-align: center;">Brak zgłoszeń do wyświetlenia.</p>
+  <% } %>
 </body>
 </html>
