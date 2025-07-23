@@ -60,10 +60,17 @@ async function sendEmail(to, subject, content, isHtml = false) {
 
 // Endpoints
 app.post('/api/submit', async (req, res) => {
-  const { name, email, callsign, experience, reason } = req.body;
+ const { name, email, callsign, experience, reason, aircrafts } = req.body;
   const { data, error } = await supabase
     .from('submissions')
-    .insert([{ name, email, callsign, experience, reason }]);
+    .insert([{ 
+      name, 
+      email, 
+      callsign, 
+      experience, 
+      reason,
+      selected_aircrafts: aircrafts
+    }]);
 
   if (error) {
     console.error('Supabase error in /api/submit:', error);
