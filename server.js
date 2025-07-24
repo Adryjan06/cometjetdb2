@@ -60,14 +60,14 @@ async function sendEmail(to, subject, content, isHtml = false) {
 
 // Endpoints
 app.post('/api/submit', async (req, res) => {
- const { name, email, callsign, experience, reason, aircrafts } = req.body;
+  const { name, email, callsign, experience, reason, aircrafts } = req.body;
   const { data, error } = await supabase
     .from('submissions')
-    .insert([{ 
-      name, 
-      email, 
-      callsign, 
-      experience, 
+    .insert([{
+      name,
+      email,
+      callsign,
+      experience,
       reason,
       selected_aircrafts: aircrafts
     }]);
@@ -157,6 +157,21 @@ app.post('/api/action', async (req, res) => {
 
   try {
     if (action === "accept") {
+      const aircrafts = generateAircraftRegistrations(
+        data.selected_aircraft_letters,
+        data.callsign
+      );
+
+      // Utwórz konto pilota
+      await fetch(`${API_BASE}/pilots`, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          callsign: data.callsign,
+          aircrafts
+        })
+      });
       const emailContent = await ejs.renderFile(
         path.join(__dirname, 'views', 'email-template.ejs'),
         { name: data.name }
@@ -187,7 +202,40 @@ CometJet VA CEOs
     console.error('Błąd w /api/action:', err);
     res.status(500).send('Błąd przetwarzania akcji');
   }
+
+function generateAircraftRegistrations(letters, callsign) {
+  const prefix = "SP-";
+  const pilotCode = callsign.substring(0, 2).toUpperCase();
+  return letters.split(',').map(letter => 
+    `${prefix}${pilotCode}${letter}${pilotCode}`
+  );
+}
+
+
+
+
 });
+
+async function sendWelcomeEmail(email, tempPassword) {
+  const content = `
+    <h1>Witaj w CometJet!</h1>
+    <p>Twoje konto pilota zostało utworzone</p>
+    <p>Login: ${email}</p>
+    <p>Tymczasowe hasło: <strong>${tempPassword}</strong></p>
+    <p>Zaloguj się i zmień hasło: <a href="https://cometjet.com/login">https://cometjet.com/login</a></p>
+  `;
+  
+  await sendEmail(email, "Witaj w CometJet Airlines!", content, true);
+}
+
+function generatePassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let password = '';
+  for (let i = 0; i < 8; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
 
 app.post('/api/send-email', async (req, res) => {
   const { to, subject, message } = req.body;
@@ -301,3 +349,48 @@ app.get('/debug', async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
+
+
+// Tworzenie konta pilota
+app.post('/api/pilots', async (req, res) => {
+  const { name, email, callsign, aircrafts } = req.body;
+  const tempPassword = generatePassword(); // funkcja generująca hasło
+
+  const { data, error } = await supabase
+    .from('pilots')
+    .insert([{
+      name,
+      email,
+      callsign,
+      password: tempPassword,
+      aircrafts,
+      role: 'pilot'
+    }]);
+
+  // Wyślij email z danymi logowania
+  await sendWelcomeEmail(email, tempPassword);
+
+  res.status(201).json(data);
+});
+
+// Pobieranie listy pilotów
+app.get('/api/pilots', async (req, res) => {
+  const { data, error } = await supabase
+    .from('pilots')
+    .select('*');
+
+  res.json(data);
+});
+
+
+app.put('/api/pilots/:id', async (req, res) => {
+  const { id } = req.params;
+  const { role } = req.body;
+  
+  const { data, error } = await supabase
+    .from('pilots')
+    .update({ role })
+    .eq('id', id);
+  
+  res.json(data);
+});
