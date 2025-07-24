@@ -132,24 +132,18 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.get('/api/pilot/:id', async (req, res) => {
-  const { id } = req.params;
-  console.log('Fetching pilot:', { id }); // Debug
   try {
+    const { id } = req.params;
     const { data, error } = await supabase
       .from('pilots')
-      .select('id, name, email, registrations, role')
+      .select('id, name, email, role, registrations, registration_code')
       .eq('id', id)
       .single();
-
-    if (error || !data) {
-      console.log('Pilot not found:', { id, error }); // Debug
-      return res.status(404).json({ error: 'Pilot not found' });
-    }
-
-    res.status(200).json(data);
-  } catch (err) {
-    console.error('Server error in /api/pilot/:id:', err);
-    res.status(500).json({ error: 'Internal server error', details: err.message });
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching pilot:', error);
+    res.status(500).json({ error: 'Error fetching pilot' });
   }
 });
 
@@ -411,36 +405,21 @@ CometJet VA CEOs
 });
 
 app.post('/api/update-pilot', async (req, res) => {
-  const { id, name, email, registrations, role } = req.body;
-  console.log('Received /api/update-pilot request:', { id, name, email, registrations, role }); // Debug
   try {
-    // Validate registrations
-    for (const [aircraft, reg] of Object.entries(registrations || {})) {
-      if (!reg.match(/^SP-[A-Z]{3}$/)) {
-        console.error('Invalid registration format:', { aircraft, reg });
-        return res.status(400).json({ error: `Nieprawidłowy format rejestracji dla ${aircraft}: ${reg}. Użyj formatu SP-XYZ.` });
-      }
-    }
-    // Validate role
-    if (role && !['user', 'admin'].includes(role)) {
-      console.error('Invalid role:', { role });
-      return res.status(400).json({ error: `Nieprawidłowa ranga: ${role}. Dozwolone wartości: user, admin.` });
-    }
-
-    const { error } = await supabase
+    const { id, name, email, registrations, role, registration_code } = req.body;
+    console.log('Received /api/update-pilot request:', req.body);
+    const { data, error } = await supabase
       .from('pilots')
-      .update({ name, email, registrations, role })
-      .eq('id', id);
-
-    if (error) {
-      console.error('Błąd aktualizacji pilota:', error);
-      return res.status(500).json({ error: 'Database error', details: error.message });
-    }
-    console.log('Pilot updated successfully:', { id, name, email, registrations, role }); // Debug
-    res.status(200).json({ message: 'Pilot updated successfully' });
-  } catch (err) {
-    console.error('Server error in /api/update-pilot:', err);
-    res.status(500).json({ error: 'Internal server error', details: err.message });
+      .update({ name, email, registrations, role, registration_code })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    console.log('Pilot updated successfully:', data);
+    res.json(data);
+  } catch (error) {
+    console.error('Error updating pilot:', error);
+    res.status(500).json({ error: 'Error updating pilot' });
   }
 });
 
