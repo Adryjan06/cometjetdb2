@@ -426,22 +426,22 @@ app.post('/api/change-password', async (req, res) => {
     console.log('Change password request:', { pilotId, currentPassword: '***', newPassword: '***' }); // Debug
     if (!pilotId || !currentPassword || !newPassword) {
       console.log('Missing required fields:', { pilotId, currentPassword: !!currentPassword, newPassword: !!newPassword }); // Debug
-      return res.status(400).json({ error: 'Brak wymaganych danych' });
+      return res.status(400).json({ error: 'Brak wymaganych danych', details: { pilotId, currentPassword: !!currentPassword, newPassword: !!newPassword } });
     }
     if (newPassword.length < 8) {
       console.log('New password too short:', { length: newPassword.length }); // Debug
       return res.status(400).json({ error: 'Nowe hasło musi mieć co najmniej 8 znaków' });
     }
     // Pobierz dane pilota
-    const { data: pilot, error } = await supabase
+    const { data: pilot, error: fetchError } = await supabase
       .from('pilots')
-      .select('*')
+      .select('id, email, password, first_login')
       .eq('id', pilotId)
       .single();
-    console.log('Supabase fetch pilot:', { pilotId, pilot: pilot ? { id: pilot.id, email: pilot.email, first_login: pilot.first_login } : null, error }); // Debug
-    if (error || !pilot) {
+    console.log('Supabase fetch pilot:', { pilotId, pilot: pilot ? { id: pilot.id, email: pilot.email, first_login: pilot.first_login } : null, fetchError }); // Debug
+    if (fetchError || !pilot) {
       console.log('Pilot not found for id:', pilotId); // Debug
-      return res.status(404).json({ error: 'Pilot nie znaleziony' });
+      return res.status(404).json({ error: 'Pilot nie znaleziony', details: fetchError?.message });
     }
     // Sprawdź aktualne hasło
     const validPassword = await bcrypt.compare(currentPassword, pilot.password);
@@ -458,9 +458,9 @@ app.post('/api/change-password', async (req, res) => {
       .from('pilots')
       .update({ password: hashedNewPassword, first_login: false })
       .eq('id', pilotId)
-      .select()
+      .select('id, email, password, first_login')
       .single();
-    console.log('Supabase update pilot:', { updatedPilot: updatedPilot ? { id: updatedPilot.id, first_login: updatedPilot.first_login } : null, updateError }); // Debug
+    console.log('Supabase update pilot:', { updatedPilot: updatedPilot ? { id: updatedPilot.id, email: updatedPilot.email, first_login: updatedPilot.first_login } : null, updateError }); // Debug
     if (updateError) {
       console.error('Błąd aktualizacji hasła:', updateError);
       return res.status(500).json({ error: 'Błąd aktualizacji hasła', details: updateError.message });
@@ -473,7 +473,7 @@ app.post('/api/change-password', async (req, res) => {
       false
     );
     console.log('Password change email sent:', { email: pilot.email, result: emailResult }); // Debug
-    return res.json({ message: 'Hasło zmienione pomyślnie' });
+    return res.status(200).json({ message: 'Hasło zmienione pomyślnie', updatedPilot: { id: updatedPilot.id, first_login: updatedPilot.first_login } });
   } catch (error) {
     console.error('Błąd zmiany hasła:', error);
     return res.status(500).json({ error: 'Błąd serwera', details: error.message });
