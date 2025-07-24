@@ -107,11 +107,11 @@ app.post('/api/login', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('pilots')
-      .select('id, password, first_login')
+      .select('id, password, first_login, role')
       .eq('email', email)
       .single();
 
-    console.log('Supabase response:', { data: data ? { id: data.id, first_login: data.first_login } : null, error }); // Debug
+    console.log('Supabase response:', { data: data ? { id: data.id, first_login: data.first_login, role: data.role } : null, error }); // Debug
     if (error || !data) {
       console.log('Pilot not found for email:', email); // Debug
       return res.status(401).json({ error: 'Invalid email or password' });
@@ -123,8 +123,8 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    console.log('Login successful, pilotId:', data.id); // Debug
-    res.status(200).json({ message: 'Login successful', firstLogin: data.first_login, pilotId: data.id });
+    console.log('Login successful, pilotId:', data.id, 'role:', data.role); // Debug
+    res.status(200).json({ message: 'Login successful', firstLogin: data.first_login, pilotId: data.id, role: data.role });
   } catch (err) {
     console.error('Server error in /api/login:', err);
     res.status(500).json({ error: 'Internal server error', details: err.message });
@@ -137,7 +137,7 @@ app.get('/api/pilot/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('pilots')
-      .select('id, name, email, registrations')
+      .select('id, name, email, registrations, role')
       .eq('id', id)
       .single();
 
@@ -206,7 +206,7 @@ app.get('/api/pilots', async (req, res) => {
     console.log('Fetching pilots from Supabase...');
     const { data, error } = await supabase
       .from('pilots')
-      .select('*')
+      .select('id, name, email, registrations, role')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -242,19 +242,36 @@ app.get('/api/posts', async (req, res) => {
 });
 
 app.get('/admin', async (req, res) => {
-  res.set('Cache-Control', 'no-store');
+  const pilotId = req.query.pilotId;
+  console.log('Admin access requested:', { pilotId }); // Debug
+  if (!pilotId) {
+    console.log('No pilotId provided for /admin'); // Debug
+    return res.redirect('/login.html');
+  }
+
   try {
     const { data, error } = await supabase
+      .from('pilots')
+      .select('role')
+      .eq('id', pilotId)
+      .single();
+
+    if (error || !data || data.role !== 'admin') {
+      console.log('Access denied to /admin:', { pilotId, role: data?.role, error }); // Debug
+      return res.redirect('/login.html');
+    }
+
+    const { data: applications, error: appError } = await supabase
       .from('submissions')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Supabase error in /admin:', error);
+    if (appError) {
+      console.error('Supabase error in /admin:', appError);
       return res.status(500).send('Błąd bazy danych');
     }
 
-    res.render('admin', { applications: data || [] });
+    res.render('admin', { applications: applications || [] });
   } catch (err) {
     console.error('Błąd serwera w /admin:', err);
     res.status(500).send('Wewnętrzny błąd serwera');
@@ -301,8 +318,8 @@ app.post('/api/action', async (req, res) => {
         }
       }
 
-      // Create pilot account
-      console.log('Creating pilot account:', { email: data.email, name: data.name, registrations: assignedRegistrations });
+      // Create pilot account with default role 'user'
+      console.log('Creating pilot account:', { email: data.email, name: data.name, registrations: assignedRegistrations, role: 'user' });
       const { data: newPilot, error: pilotError } = await supabase
         .from('pilots')
         .insert([{
@@ -311,6 +328,7 @@ app.post('/api/action', async (req, res) => {
           password: hashedPassword,
           registrations: assignedRegistrations,
           first_login: true,
+          role: 'user',
           created_at: new Date().toISOString()
         }])
         .select('id')
@@ -343,7 +361,7 @@ app.post('/api/action', async (req, res) => {
           {
             name: data.name,
             tempPassword,
-            loginUrl: 'https://comet-jet-site.vercel.app/login'
+            loginUrl: 'https://cometjetdb2.onrender.com/login.html'
           }
         );
         await sendEmail(data.email, "Welcome to CometJet!", emailContent, true);
@@ -393,8 +411,8 @@ CometJet VA CEOs
 });
 
 app.post('/api/update-pilot', async (req, res) => {
-  const { id, name, email, registrations } = req.body;
-  console.log('Received /api/update-pilot request:', { id, name, email, registrations });
+  const { id, name, email, registrations, role } = req.body;
+  console.log('Received /api/update-pilot request:', { id, name, email, registrations, role }); // Debug
   try {
     // Validate registrations
     for (const [aircraft, reg] of Object.entries(registrations || {})) {
@@ -403,16 +421,22 @@ app.post('/api/update-pilot', async (req, res) => {
         return res.status(400).json({ error: `Nieprawidłowy format rejestracji dla ${aircraft}: ${reg}. Użyj formatu SP-XYZ.` });
       }
     }
+    // Validate role
+    if (role && !['user', 'admin'].includes(role)) {
+      console.error('Invalid role:', { role });
+      return res.status(400).json({ error: `Nieprawidłowa ranga: ${role}. Dozwolone wartości: user, admin.` });
+    }
 
     const { error } = await supabase
       .from('pilots')
-      .update({ name, email, registrations })
+      .update({ name, email, registrations, role })
       .eq('id', id);
 
     if (error) {
       console.error('Błąd aktualizacji pilota:', error);
       return res.status(500).json({ error: 'Database error', details: error.message });
     }
+    console.log('Pilot updated successfully:', { id, name, email, registrations, role }); // Debug
     res.status(200).json({ message: 'Pilot updated successfully' });
   } catch (err) {
     console.error('Server error in /api/update-pilot:', err);
@@ -574,6 +598,17 @@ app.get('/login', (req, res) => {
 
 app.get('/pilot-dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'pilot-dashboard.html'));
+});
+
+app.get('/panel-admin', (req, res) => {
+  const pilotId = req.query.pilotId;
+  console.log('Panel admin access requested:', { pilotId }); // Debug
+  if (!pilotId) {
+    console.log('No pilotId provided for /panel-admin'); // Debug
+    return res.redirect('/login.html');
+  }
+
+  res.sendFile(path.join(__dirname, 'public', 'panel-admin.html'));
 });
 
 // Debug endpoint
