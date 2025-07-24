@@ -6,9 +6,11 @@ const supabase = require('./supabaseClient');
 const cors = require('cors');
 const ejs = require('ejs');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key'; // Ustaw w zmiennych środowiskowych na Render
 
 // CORS configuration
 const allowedOrigins = [
@@ -36,6 +38,33 @@ app.use(bodyParser.json());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
+
+// JWT Middleware
+const verifyToken = async (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1];
+  console.log('Verifying token:', { token: token ? '***' : null }); // Debug
+  if (!token) {
+    console.log('No token provided');
+    return res.status(401).json({ error: 'Brak tokenu, zaloguj się' });
+  }
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    console.log('Token decoded:', { pilotId: decoded.pilotId, role: decoded.role });
+    req.user = decoded;
+    next();
+  } catch (err) {
+    console.error('Invalid token:', err.message);
+    return res.status(401).json({ error: 'Nieprawidłowy lub wygasły token' });
+  }
+};
+
+const verifyAdmin = (req, res, next) => {
+  if (req.user.role !== 'admin') {
+    console.log('Access denied, not an admin:', { role: req.user.role });
+    return res.status(403).json({ error: 'Brak uprawnień administratora' });
+  }
+  next();
+};
 
 // Aircraft registration mapping
 const aircraftRegistrationMap = {
@@ -107,7 +136,7 @@ app.post('/api/login', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('pilots')
-      .select('id, password, first_login, role')
+      .select('id, password, first_login, role, name')
       .eq('email', email)
       .single();
 
@@ -123,17 +152,27 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    console.log('Login successful, pilotId:', data.id, 'role:', data.role); // Debug
-    res.status(200).json({ message: 'Login successful', firstLogin: data.first_login, pilotId: data.id, role: data.role });
+    // Generate JWT
+    const token = jwt.sign(
+      { pilotId: data.id, role: data.role, name: data.name },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+    console.log('Login successful, pilotId:', data.id, 'role:', data.role, 'token:', '***'); // Debug
+    res.status(200).json({ message: 'Login successful', token, firstLogin: data.first_login, pilotId: data.id, role: data.role, name: data.name });
   } catch (err) {
     console.error('Server error in /api/login:', err);
     res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 });
 
-app.get('/api/pilot/:id', async (req, res) => {
+app.get('/api/pilot/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
+    if (req.user.pilotId !== id && req.user.role !== 'admin') {
+      console.log('Access denied to pilot data:', { requestedId: id, userId: req.user.pilotId, role: req.user.role });
+      return res.status(403).json({ error: 'Brak uprawnień do tych danych' });
+    }
     const { data, error } = await supabase
       .from('pilots')
       .select('id, name, email, role, registrations, registration_code')
@@ -180,7 +219,7 @@ app.post('/api/submit', async (req, res) => {
   }
 });
 
-app.get('/api/applications', async (req, res) => {
+app.get('/api/applications', verifyToken, verifyAdmin, async (req, res) => {
   try {
     console.log('Fetching applications from Supabase...');
     const { data, error } = await supabase
@@ -200,7 +239,7 @@ app.get('/api/applications', async (req, res) => {
   }
 });
 
-app.get('/api/pilots', async (req, res) => {
+app.get('/api/pilots', verifyToken, verifyAdmin, async (req, res) => {
   try {
     console.log('Fetching pilots from Supabase...');
     const { data, error } = await supabase
@@ -240,26 +279,8 @@ app.get('/api/posts', async (req, res) => {
   }
 });
 
-app.get('/admin', async (req, res) => {
-  const pilotId = req.query.pilotId;
-  console.log('Admin access requested:', { pilotId }); // Debug
-  if (!pilotId) {
-    console.log('No pilotId provided for /admin'); // Debug
-    return res.redirect('/login.html');
-  }
-
+app.get('/admin', verifyToken, verifyAdmin, async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('pilots')
-      .select('role')
-      .eq('id', pilotId)
-      .single();
-
-    if (error || !data || data.role !== 'admin') {
-      console.log('Access denied to /admin:', { pilotId, role: data?.role, error }); // Debug
-      return res.redirect('/login.html');
-    }
-
     const { data: applications, error: appError } = await supabase
       .from('submissions')
       .select('*')
@@ -277,7 +298,7 @@ app.get('/admin', async (req, res) => {
   }
 });
 
-app.post('/api/action', async (req, res) => {
+app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
   const { id, action, registrations } = req.body;
   console.log('Received /api/action request:', { id, action, registrations });
 
@@ -424,7 +445,7 @@ CometJet VA CEOs
   }
 });
 
-app.post('/api/update-pilot', async (req, res) => {
+app.post('/api/update-pilot', verifyToken, verifyAdmin, async (req, res) => {
   try {
     const { id, name, email, registrations, role, registration_code } = req.body;
     console.log('Received /api/update-pilot request:', req.body);
@@ -443,13 +464,14 @@ app.post('/api/update-pilot', async (req, res) => {
   }
 });
 
-app.post('/api/change-password', async (req, res) => {
+app.post('/api/change-password', verifyToken, async (req, res) => {
   try {
-    const { pilotId, currentPassword, newPassword } = req.body;
+    const { currentPassword, newPassword } = req.body;
+    const pilotId = req.user.pilotId;
     console.log('Change password request:', { pilotId, currentPassword: '***', newPassword: '***' }); // Debug
-    if (!pilotId || !currentPassword || !newPassword) {
-      console.log('Missing required fields:', { pilotId, currentPassword: !!currentPassword, newPassword: !!newPassword }); // Debug
-      return res.status(400).json({ error: 'Brak wymaganych danych', details: { pilotId, currentPassword: !!currentPassword, newPassword: !!newPassword } });
+    if (!currentPassword || !newPassword) {
+      console.log('Missing required fields:', { currentPassword: !!currentPassword, newPassword: !!newPassword }); // Debug
+      return res.status(400).json({ error: 'Brak wymaganych danych' });
     }
     if (newPassword.length < 8) {
       console.log('New password too short:', { length: newPassword.length }); // Debug
@@ -522,7 +544,7 @@ app.get('/api/posts/:id', async (req, res) => {
   }
 });
 
-app.post('/api/posts', async (req, res) => {
+app.post('/api/posts', verifyToken, verifyAdmin, async (req, res) => {
   const { id, title, content, author, image_url, is_published } = req.body;
   if (!title || !content) {
     return res.status(400).json({ error: 'Title and content are required' });
@@ -564,7 +586,7 @@ app.post('/api/posts', async (req, res) => {
   }
 });
 
-app.delete('/api/posts/:id', async (req, res) => {
+app.delete('/api/posts/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { id } = req.params;
   try {
     const { error } = await supabase
@@ -580,7 +602,7 @@ app.delete('/api/posts/:id', async (req, res) => {
   }
 });
 
-app.post('/api/send-email', async (req, res) => {
+app.post('/api/send-email', verifyToken, verifyAdmin, async (req, res) => {
   const { to, subject, message } = req.body;
   try {
     await sendEmail(to, subject, message);
@@ -595,18 +617,11 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-app.get('/pilot-dashboard', (req, res) => {
+app.get('/pilot-dashboard', verifyToken, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'pilot-dashboard.html'));
 });
 
-app.get('/panel-admin', (req, res) => {
-  const pilotId = req.query.pilotId;
-  console.log('Panel admin access requested:', { pilotId }); // Debug
-  if (!pilotId) {
-    console.log('No pilotId provided for /panel-admin'); // Debug
-    return res.redirect('/login.html');
-  }
-
+app.get('/panel-admin', verifyToken, verifyAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'panel-admin.html'));
 });
 
@@ -627,6 +642,23 @@ app.get('/debug', async (req, res) => {
   } catch (err) {
     res.send('Błąd serwera: ' + err.message);
   }
+});
+
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api')) {
+        const token = req.headers['authorization']?.split(' ')[1];
+        if (token) {
+            try {
+                const decoded = jwt.verify(token, JWT_SECRET);
+                if (decoded.exp * 1000 < Date.now()) {
+                    return res.status(401).json({ error: 'Sesja wygasła' });
+                }
+            } catch (e) {
+                // Ignore invalid tokens for non-auth routes
+            }
+        }
+    }
+    next();
 });
 
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
