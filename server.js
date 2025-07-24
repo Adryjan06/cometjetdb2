@@ -83,6 +83,7 @@ async function sendEmail(to, subject, content, isHtml = false) {
   try {
     const info = await transporter.sendMail(mailOptions);
     console.log("Mail sent: " + info.response);
+    return { success: true, response: info.response };
   } catch (err) {
     console.error("Error sending email:", err);
     throw err;
@@ -102,7 +103,7 @@ function generateTempPassword() {
 // Endpoints
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
-  console.log('Login request:', { email }); // Debug
+  console.log('Login request:', { email, password: '***' }); // Debug
   try {
     const { data, error } = await supabase
       .from('pilots')
@@ -110,12 +111,14 @@ app.post('/api/login', async (req, res) => {
       .eq('email', email)
       .single();
 
-    console.log('Supabase response:', { data, error }); // Debug
+    console.log('Supabase response:', { data: data ? { id: data.id, first_login: data.first_login } : null, error }); // Debug
     if (error || !data) {
+      console.log('Pilot not found for email:', email); // Debug
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     const isMatch = await bcrypt.compare(password, data.password);
+    console.log('Password match:', { isMatch }); // Debug
     if (!isMatch) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -422,9 +425,11 @@ app.post('/api/change-password', async (req, res) => {
     const { pilotId, currentPassword, newPassword } = req.body;
     console.log('Change password request:', { pilotId, currentPassword: '***', newPassword: '***' }); // Debug
     if (!pilotId || !currentPassword || !newPassword) {
+      console.log('Missing required fields:', { pilotId, currentPassword: !!currentPassword, newPassword: !!newPassword }); // Debug
       return res.status(400).json({ error: 'Brak wymaganych danych' });
     }
     if (newPassword.length < 8) {
+      console.log('New password too short:', { length: newPassword.length }); // Debug
       return res.status(400).json({ error: 'Nowe hasło musi mieć co najmniej 8 znaków' });
     }
     // Pobierz dane pilota
@@ -433,14 +438,16 @@ app.post('/api/change-password', async (req, res) => {
       .select('*')
       .eq('id', pilotId)
       .single();
-    console.log('Supabase fetch pilot:', { pilotId, pilot: pilot ? { id: pilot.id, email: pilot.email } : null, error }); // Debug
+    console.log('Supabase fetch pilot:', { pilotId, pilot: pilot ? { id: pilot.id, email: pilot.email, first_login: pilot.first_login } : null, error }); // Debug
     if (error || !pilot) {
+      console.log('Pilot not found for id:', pilotId); // Debug
       return res.status(404).json({ error: 'Pilot nie znaleziony' });
     }
     // Sprawdź aktualne hasło
     const validPassword = await bcrypt.compare(currentPassword, pilot.password);
     console.log('Password validation:', { validPassword }); // Debug
     if (!validPassword) {
+      console.log('Invalid current password for pilotId:', pilotId); // Debug
       return res.status(401).json({ error: 'Nieprawidłowe aktualne hasło' });
     }
     // Zahashuj nowe hasło
@@ -453,19 +460,19 @@ app.post('/api/change-password', async (req, res) => {
       .eq('id', pilotId)
       .select()
       .single();
-    console.log('Supabase update pilot:', { updatedPilot, updateError }); // Debug
+    console.log('Supabase update pilot:', { updatedPilot: updatedPilot ? { id: updatedPilot.id, first_login: updatedPilot.first_login } : null, updateError }); // Debug
     if (updateError) {
       console.error('Błąd aktualizacji hasła:', updateError);
       return res.status(500).json({ error: 'Błąd aktualizacji hasła', details: updateError.message });
     }
     // Wyślij email z potwierdzeniem
-    await sendEmail(
+    const emailResult = await sendEmail(
       pilot.email,
       'Potwierdzenie zmiany hasła',
       `Twoje hasło w systemie CometJet zostało pomyślnie zmienione. Jeśli to nie Ty dokonałeś zmiany, skontaktuj się z administratorem.`,
       false
     );
-    console.log('Password change email sent to:', pilot.email); // Debug
+    console.log('Password change email sent:', { email: pilot.email, result: emailResult }); // Debug
     return res.json({ message: 'Hasło zmienione pomyślnie' });
   } catch (error) {
     console.error('Błąd zmiany hasła:', error);
