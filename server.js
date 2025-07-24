@@ -151,6 +151,11 @@ app.post('/api/submit', async (req, res) => {
   const { name, email, callsign, experience, reason, aircrafts } = req.body;
   console.log('Received /api/submit:', { name, email, callsign, experience, reason, aircrafts });
   try {
+    // Ensure aircrafts is an array
+    const aircraftsArray = Array.isArray(aircrafts) ? aircrafts : (typeof aircrafts === 'string' ? aircrafts.split(',').map(s => s.trim()) : []);
+    if (aircraftsArray.length === 0) {
+      return res.status(400).json({ error: 'No aircrafts selected' });
+    }
     const { data, error } = await supabase
       .from('submissions')
       .insert([{
@@ -159,7 +164,7 @@ app.post('/api/submit', async (req, res) => {
         callsign,
         experience,
         reason,
-        selected_aircrafts: aircrafts
+        selected_aircrafts: aircraftsArray
       }]);
 
     if (error) {
@@ -200,7 +205,7 @@ app.get('/api/pilots', async (req, res) => {
     console.log('Fetching pilots from Supabase...');
     const { data, error } = await supabase
       .from('pilots')
-      .select('id, name, email, registrations, role')
+      .select('id, name, email, registrations, role, registration_code')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -288,6 +293,14 @@ app.post('/api/action', async (req, res) => {
       return res.status(400).json({ error: `Zgłoszenie już przetworzone jako ${data.status}` });
     }
 
+    // Ensure selected_aircrafts is an array
+    let selectedAircrafts = data.selected_aircrafts;
+    if (typeof selectedAircrafts === 'string') {
+      selectedAircrafts = selectedAircrafts.split(',').map(s => s.trim());
+    } else if (!Array.isArray(selectedAircrafts)) {
+      selectedAircrafts = [];
+    }
+
     if (action === "accept") {
       // Generate temporary password
       const tempPassword = generateTempPassword();
@@ -297,10 +310,16 @@ app.post('/api/action', async (req, res) => {
       let assignedRegistrations = registrations || {};
       if (!registrations || Object.keys(registrations).length === 0) {
         assignedRegistrations = {};
-        data.selected_aircrafts.forEach(aircraft => {
+        if (selectedAircrafts.length === 0) {
+          console.warn('No selected aircrafts for registration generation:', { id });
+          return res.status(400).json({ error: 'No aircrafts selected for registration' });
+        }
+        selectedAircrafts.forEach(aircraft => {
           const letter = aircraftRegistrationMap[aircraft];
-          const code = generateRandomCode();
-          assignedRegistrations[aircraft] = `SP-${code[0]}${letter}${code[1]}`;
+          if (letter) {
+            const code = generateRandomCode();
+            assignedRegistrations[aircraft] = `SP-${code[0]}${letter}${code[1]}`;
+          }
         });
       }
 
@@ -323,7 +342,8 @@ app.post('/api/action', async (req, res) => {
           registrations: assignedRegistrations,
           first_login: true,
           role: 'user',
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          registration_code: generateRandomCode()
         }])
         .select('id')
         .single();
