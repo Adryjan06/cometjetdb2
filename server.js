@@ -60,14 +60,14 @@ async function sendEmail(to, subject, content, isHtml = false) {
 
 // Endpoints
 app.post('/api/submit', async (req, res) => {
-  const { name, email, callsign, experience, reason, aircrafts } = req.body;
+ const { name, email, callsign, experience, reason, aircrafts } = req.body;
   const { data, error } = await supabase
     .from('submissions')
-    .insert([{
-      name,
-      email,
-      callsign,
-      experience,
+    .insert([{ 
+      name, 
+      email, 
+      callsign, 
+      experience, 
       reason,
       selected_aircrafts: aircrafts
     }]);
@@ -144,15 +144,8 @@ app.get('/admin', async (req, res) => {
 
 app.post('/api/action', async (req, res) => {
   const { id, action } = req.body;
-  console.log('Dane wejściowe:', { id, action });
-
-  if (!id || !['accept', 'reject'].includes(action)) {
-    console.error('Nieprawidłowe dane wejściowe:', { id, action });
-    return res.status(400).send('Nieprawidłowe ID lub akcja');
-  }
-
   const { data, error } = await supabase.from('submissions').select('*').eq('id', id).single();
-  if (error || !data) {
+  if (!data || error) {
     console.error('Błąd pobierania zgłoszenia:', error);
     return res.status(404).send('Zgłoszenie nie znalezione');
   }
@@ -163,69 +156,38 @@ app.post('/api/action', async (req, res) => {
   }
 
   try {
-    if (action === 'accept') {
-      if (!data.selected_aircraft_letters || !data.callsign) {
-        throw new Error('Brak selected_aircraft_letters lub callsign');
-      }
-      const aircrafts = generateAircraftRegistrations(data.selected_aircraft_letters, data.callsign);
-      const API_BASE = process.env.API_BASE || 'https://cometjetdb2.onrender.com';
-
-      const response = await fetch(`${API_BASE}/pilots`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: data.name,
-          email: data.email,
-          callsign: data.callsign,
-          aircrafts
-        })
-      });
-      if (!response.ok) {
-        throw new Error(`Błąd żądania do /api/pilots: ${response.statusText}`);
-      }
-
+    if (action === "accept") {
       const emailContent = await ejs.renderFile(
         path.join(__dirname, 'views', 'email-template.ejs'),
         { name: data.name }
       );
-      await sendEmail(data.email, 'Welcome to CometJet!', emailContent, true);
+      await sendEmail(data.email, "Welcome to CometJet!", emailContent, true);
     } else {
-      const rejectionMessage = `...`; // Wiadomość odrzucenia
-      await sendEmail(data.email, 'CometJet - Recruitment Outcome Notification', rejectionMessage);
+      const rejectionMessage = `
+# CometJet - Recruitment Outcome Notification
+
+Dear ${data.name},
+
+We regret to inform you that your application for the pilot position at CometJet has not been successful. We sincerely appreciate your interest in our airline and the time you invested in submitting your application.
+
+Your passion for aviation is commendable, and we are confident it will find a place in other professional opportunities. We wish you the best of luck in your future career endeavors and in pursuing your aviation aspirations.
+
+Should you have any questions, please feel free to reach out via our Discord server, where we are happy to provide further information.
+
+Best regards,  
+KayJayKay and Aviaced  
+CometJet VA CEOs
+      `;
+      await sendEmail(data.email, "CometJet - Recruitment Outcome Notification", rejectionMessage);
     }
 
-    const { error: updateError } = await supabase.from('submissions').update({ status: action }).eq('id', id);
-    if (updateError) {
-      throw new Error(`Błąd aktualizacji statusu: ${updateError.message}`);
-    }
-
+    await supabase.from('submissions').update({ status: action }).eq('id', id);
     res.redirect('/admin');
   } catch (err) {
-    console.error('Błąd w /api/action:', err.message, err.stack);
+    console.error('Błąd w /api/action:', err);
     res.status(500).send('Błąd przetwarzania akcji');
   }
 });
-
-async function sendWelcomeEmail(email, tempPassword) {
-  const content = `
-    <h1>Witaj w CometJet!</h1>
-    <p>Twoje konto pilota zostało utworzone</p>
-    <p>Login: ${email}</p>
-    <p>Tymczasowe hasło: <strong>${tempPassword}</strong></p>
-    <p>Zaloguj się i zmień hasło: <a href="https://cometjet.com/login">https://cometjet.com/login</a></p>
-  `;
-  
-  await sendEmail(email, "Witaj w CometJet Airlines!", content, true);
-}
-
-function generatePassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let password = '';
-  for (let i = 0; i < 8; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
 
 app.post('/api/send-email', async (req, res) => {
   const { to, subject, message } = req.body;
@@ -339,48 +301,3 @@ app.get('/debug', async (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
-
-
-// Tworzenie konta pilota
-app.post('/api/pilots', async (req, res) => {
-  const { name, email, callsign, aircrafts } = req.body;
-  const tempPassword = generatePassword(); // funkcja generująca hasło
-
-  const { data, error } = await supabase
-    .from('pilots')
-    .insert([{
-      name,
-      email,
-      callsign,
-      password: tempPassword,
-      aircrafts,
-      role: 'pilot'
-    }]);
-
-  // Wyślij email z danymi logowania
-  await sendWelcomeEmail(email, tempPassword);
-
-  res.status(201).json(data);
-});
-
-// Pobieranie listy pilotów
-app.get('/api/pilots', async (req, res) => {
-  const { data, error } = await supabase
-    .from('pilots')
-    .select('*');
-
-  res.json(data);
-});
-
-
-app.put('/api/pilots/:id', async (req, res) => {
-  const { id } = req.params;
-  const { role } = req.body;
-  
-  const { data, error } = await supabase
-    .from('pilots')
-    .update({ role })
-    .eq('id', id);
-  
-  res.json(data);
-});
