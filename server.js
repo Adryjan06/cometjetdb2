@@ -5,6 +5,7 @@ const path = require('path');
 const supabase = require('./supabaseClient');
 const cors = require('cors');
 const ejs = require('ejs');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,6 +33,24 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Authentication middleware
+const authenticateAdmin = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: 'No authorization header' });
+
+  const [email, password] = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
+  const { data, error } = await supabase.from('users').select('*').eq('email', email).single();
+
+  if (error || !data) return res.status(401).json({ error: 'Invalid credentials' });
+  if (data.role !== 'admin') return res.status(403).json({ error: 'Admin access required' });
+
+  const isPasswordValid = await bcrypt.compare(password, data.password);
+  if (!isPasswordValid) return res.status(401).json({ error: 'Invalid credentials' });
+
+  req.user = data;
+  next();
+};
+
 // Email sending function
 async function sendEmail(to, subject, content, isHtml = false) {
   const transporter = nodemailer.createTransport({
@@ -58,9 +77,30 @@ async function sendEmail(to, subject, content, isHtml = false) {
   }
 }
 
+// Aircraft registration mapping
+const aircraftRegistrations = {
+  'A320neo': 'SP-#J#',
+  'A320': 'SP-#F#',
+  'A321neo': 'SP-#O#',
+  'A339neo': 'SP-#X#',
+  'A359': 'SP-#A#',
+  'A388': 'SP-#V#',
+  'B738': 'SP-#N#',
+  'B38M': 'SP-#M#',
+  'B789': 'SP-#D#',
+  'B773': 'SP-#P#'
+};
+
+// Generate registration
+function generateRegistration(aircraft, uniqueLetters) {
+  const template = aircraftRegistrations[aircraft];
+  if (!template) return null;
+  return template.replace('#', uniqueLetters[0]).replace('#', uniqueLetters[1]);
+}
+
 // Endpoints
 app.post('/api/submit', async (req, res) => {
- const { name, email, callsign, experience, reason, aircrafts } = req.body;
+  const { name, email, callsign, experience, reason, aircrafts } = req.body;
   const { data, error } = await supabase
     .from('submissions')
     .insert([{ 
@@ -81,7 +121,7 @@ app.post('/api/submit', async (req, res) => {
   res.sendStatus(200);
 });
 
-app.get('/api/applications', async (req, res) => {
+app.get('/api/applications', authenticateAdmin, async (req, res) => {
   try {
     console.log('Fetching applications from Supabase...');
     const { data, error } = await supabase
@@ -122,7 +162,7 @@ app.get('/api/posts', async (req, res) => {
   }
 });
 
-app.get('/admin', async (req, res) => {
+app.get('/admin', authenticateAdmin, async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
     const { data, error } = await supabase
@@ -142,8 +182,28 @@ app.get('/admin', async (req, res) => {
   }
 });
 
-app.post('/api/action', async (req, res) => {
-  const { id, action } = req.body;
+app.get('/admin/pilots', authenticateAdmin, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  try {
+    const { data, error } = await supabase
+      .from('pilots')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error in /admin/pilots:', error);
+      return res.status(500).send('Błąd bazy danych');
+    }
+
+    res.render('pilots', { pilots: data || [] });
+  } catch (err) {
+    console.error('Błąd serwera w /admin/pilots:', err);
+    res.status(500).send('Wewnętrzny błąd serwera');
+  }
+});
+
+app.post('/api/action', authenticateAdmin, async (req, res) => {
+  const { id, action, registrations } = req.body;
   const { data, error } = await supabase.from('submissions').select('*').eq('id', id).single();
   if (!data || error) {
     console.error('Błąd pobierania zgłoszenia:', error);
@@ -157,9 +217,42 @@ app.post('/api/action', async (req, res) => {
 
   try {
     if (action === "accept") {
+      // Generate temporary password
+      const tempPassword = Math.random().toString(36).slice(-8);
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+      // Create user account
+      const { error: userError } = await supabase.from('users').insert([{
+        email: data.email,
+        password: hashedPassword,
+        role: 'pilot',
+        must_change_password: true
+      }]);
+      if (userError) throw userError;
+
+      // Generate registrations
+      const assignedRegistrations = data.selected_aircrafts.map((aircraft, index) => ({
+        aircraft,
+        registration: generateRegistration(aircraft, registrations[index])
+      }));
+
+      // Insert pilot data
+      const { error: pilotError } = await supabase.from('pilots').insert([{
+        name: data.name,
+        email: data.email,
+        registrations: assignedRegistrations,
+        created_at: new Date().toISOString()
+      }]);
+      if (pilotError) throw pilotError;
+
+      // Update email template with registrations and temp password
       const emailContent = await ejs.renderFile(
         path.join(__dirname, 'views', 'email-template.ejs'),
-        { name: data.name }
+        { 
+          name: data.name,
+          registrations: assignedRegistrations,
+          tempPassword
+        }
       );
       await sendEmail(data.email, "Welcome to CometJet!", emailContent, true);
     } else {
@@ -189,7 +282,7 @@ CometJet VA CEOs
   }
 });
 
-app.post('/api/send-email', async (req, res) => {
+app.post('/api/send-email', authenticateAdmin, async (req, res) => {
   const { to, subject, message } = req.body;
   if (!to || !subject || !message) {
     return res.status(400).json({ error: 'Brak wymaganych pól: to, subject, message' });
@@ -223,7 +316,7 @@ app.get('/api/posts/:id', async (req, res) => {
   }
 });
 
-app.post('/api/posts', async (req, res) => {
+app.post('/api/posts', authenticateAdmin, async (req, res) => {
   const { id, title, content, author, image_url, is_published } = req.body;
   if (!title || !content) {
     return res.status(400).json({ error: "Title and content are required" });
@@ -265,7 +358,7 @@ app.post('/api/posts', async (req, res) => {
   }
 });
 
-app.delete('/api/posts/:id', async (req, res) => {
+app.delete('/api/posts/:id', authenticateAdmin, async (req, res) => {
   const { id } = req.params;
   try {
     const { error } = await supabase
@@ -275,6 +368,104 @@ app.delete('/api/posts/:id', async (req, res) => {
 
     if (error) throw error;
     res.status(200).json({ message: "Post deleted" });
+  } catch (error) {
+    console.error('Błąd bazy danych:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/pilots', authenticateAdmin, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('pilots')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error in /api/pilots:', error);
+      return res.status(500).json({ error: 'Database error', details: error.message });
+    }
+    res.json(data);
+  } catch (err) {
+    console.error('Server error in /api/pilots:', err);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
+app.get('/api/pilots/:email', authenticateAdmin, async (req, res) => {
+  const { email } = req.params;
+  try {
+    const { data, error } = await supabase
+      .from('pilots')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ error: "Pilot not found" });
+    }
+    res.json(data);
+  } catch (err) {
+    console.error('Server error:', err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post('/api/pilots', authenticateAdmin, async (req, res) => {
+  const { email, name, registrations } = req.body;
+  if (!email || !name || !registrations) {
+    return res.status(400).json({ error: "Email, name, and registrations are required" });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('pilots')
+      .update({ name, registrations, updated_at: new Date().toISOString() })
+      .eq('email', email)
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Błąd bazy danych:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/login', async (req, res) => {
+  const { email, password, newPassword } = req.body;
+  const { data, error } = await supabase.from('users').select('*').eq('email', email).single();
+
+  if (error || !data) return res.status(401).json({ error: 'Invalid credentials' });
+
+  const isPasswordValid = await bcrypt.compare(password, data.password);
+  if (!isPasswordValid) return res.status(401).json({ error: 'Invalid credentials' });
+
+  if (data.must_change_password && newPassword) {
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    await supabase.from('users').update({ password: hashedNewPassword, must_change_password: false }).eq('email', email);
+  } else if (data.must_change_password) {
+    return res.status(400).json({ error: 'Must change password' });
+  }
+
+  res.status(200).json({ role: data.role });
+});
+
+app.post('/api/users/role', authenticateAdmin, async (req, res) => {
+  const { email, role } = req.body;
+  if (!email || !['pilot', 'admin'].includes(role)) {
+    return res.status(400).json({ error: 'Invalid email or role' });
+  }
+
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update({ role })
+      .eq('email', email);
+
+    if (error) throw error;
+    res.status(200).json({ message: 'Role updated' });
   } catch (error) {
     console.error('Błąd bazy danych:', error);
     res.status(500).json({ error: error.message });
