@@ -76,6 +76,9 @@ async function sendEmail(to, subject, content, isHtml = false) {
     throw err;
   }
 }
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
 
 // Aircraft registration mapping
 const aircraftRegistrations = {
