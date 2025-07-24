@@ -246,18 +246,20 @@ app.get('/admin', async (req, res) => {
 
 app.post('/api/action', async (req, res) => {
   const { id, action, registrations } = req.body;
-  const { data, error } = await supabase.from('submissions').select('*').eq('id', id).single();
-  if (!data || error) {
-    console.error('Błąd pobierania zgłoszenia:', error);
-    return res.status(404).send('Zgłoszenie nie znalezione');
-  }
-
-  if (data.status === 'accept' || data.status === 'reject') {
-    console.log(`Zgłoszenie ${id} już ma status: ${data.status}`);
-    return res.redirect('/admin');
-  }
+  console.log('Received /api/action request:', { id, action, registrations });
 
   try {
+    const { data, error } = await supabase.from('submissions').select('*').eq('id', id).single();
+    if (!data || error) {
+      console.error('Błąd pobierania zgłoszenia:', error);
+      return res.status(404).send('Zgłoszenie nie znalezione');
+    }
+
+    if (data.status === 'accept' || data.status === 'reject') {
+      console.log(`Zgłoszenie ${id} już ma status: ${data.status}`);
+      return res.redirect('/admin');
+    }
+
     if (action === "accept") {
       // Generate temporary password
       const tempPassword = generateTempPassword();
@@ -275,6 +277,7 @@ app.post('/api/action', async (req, res) => {
       }
 
       // Create pilot account
+      console.log('Creating pilot account:', { email: data.email, name: data.name, registrations: assignedRegistrations });
       const { error: pilotError } = await supabase
         .from('pilots')
         .insert([{
@@ -288,14 +291,23 @@ app.post('/api/action', async (req, res) => {
 
       if (pilotError) {
         console.error('Błąd tworzenia konta pilota:', pilotError);
-        throw pilotError;
+        return res.status(500).json({ error: 'Błąd tworzenia konta pilota', details: pilotError.message });
       }
 
       // Update submission with registrations and status
-      await supabase.from('submissions').update({ 
-        status: action,
-        registrations: assignedRegistrations 
-      }).eq('id', id);
+      console.log('Updating submission:', { id, status: action, registrations: assignedRegistrations });
+      const { error: updateError } = await supabase
+        .from('submissions')
+        .update({ 
+          status: action,
+          registrations: assignedRegistrations 
+        })
+        .eq('id', id);
+
+      if (updateError) {
+        console.error('Błąd aktualizacji zgłoszenia:', updateError);
+        return res.status(500).json({ error: 'Błąd aktualizacji zgłoszenia', details: updateError.message });
+      }
 
       const emailContent = await ejs.renderFile(
         path.join(__dirname, 'views', 'email-template.ejs'),
@@ -323,18 +335,27 @@ KayJayKay and Aviaced
 CometJet VA CEOs
       `;
       await sendEmail(data.email, "CometJet - Recruitment Outcome Notification", rejectionMessage);
-      await supabase.from('submissions').update({ status: action }).eq('id', id);
+      const { error: updateError } = await supabase
+        .from('submissions')
+        .update({ status: action })
+        .eq('id', id);
+
+      if (updateError) {
+        console.error('Błąd aktualizacji zgłoszenia:', updateError);
+        return res.status(500).json({ error: 'Błąd aktualizacji zgłoszenia', details: updateError.message });
+      }
     }
 
     res.redirect('/admin');
   } catch (err) {
     console.error('Błąd w /api/action:', err);
-    res.status(500).send('Błąd przetwarzania akcji');
+    res.status(500).json({ error: 'Błąd przetwarzania akcji', details: err.message });
   }
 });
 
 app.post('/api/update-pilot', async (req, res) => {
   const { id, name, email, registrations } = req.body;
+  console.log('Received /api/update-pilot request:', { id, name, email, registrations });
   try {
     const { error } = await supabase
       .from('pilots')
@@ -443,9 +464,9 @@ app.post('/api/posts', async (req, res) => {
       data = created;
     }
     res.status(200).json(data);
-  } catch (error) {
-    console.error('Błąd bazy danych:', error);
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error('Błąd bazy danych:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -459,9 +480,9 @@ app.delete('/api/posts/:id', async (req, res) => {
 
     if (error) throw error;
     res.status(200).json({ message: "Post deleted" });
-  } catch (error) {
-    console.error('Błąd bazy danych:', error);
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error('Błąd bazy danych:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
