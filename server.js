@@ -11,7 +11,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // CORS configuration
-const allowedOrigins = ['https://twoja-strona.com', 'http://localhost:3000', 'https://comet-jet-site.vercel.app'];
+const allowedOrigins = [
+  'https://comet-jet-site.vercel.app',
+  'https://cometjetdb2.onrender.com',
+  'http://localhost:3000'
+];
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -98,6 +102,7 @@ function generateTempPassword() {
 // Endpoints
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
+  console.log('Login request:', { email }); // Debug
   try {
     const { data, error } = await supabase
       .from('pilots')
@@ -105,6 +110,7 @@ app.post('/api/login', async (req, res) => {
       .eq('email', email)
       .single();
 
+    console.log('Supabase response:', { data, error }); // Debug
     if (error || !data) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -114,6 +120,7 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    console.log('Login successful, pilotId:', data.id); // Debug
     res.status(200).json({ message: 'Login successful', firstLogin: data.first_login, pilotId: data.id });
   } catch (err) {
     console.error('Server error in /api/login:', err);
@@ -123,6 +130,7 @@ app.post('/api/login', async (req, res) => {
 
 app.get('/api/pilot/:id', async (req, res) => {
   const { id } = req.params;
+  console.log('Fetching pilot:', { id }); // Debug
   try {
     const { data, error } = await supabase
       .from('pilots')
@@ -131,6 +139,7 @@ app.get('/api/pilot/:id', async (req, res) => {
       .single();
 
     if (error || !data) {
+      console.log('Pilot not found:', { id, error }); // Debug
       return res.status(404).json({ error: 'Pilot not found' });
     }
 
@@ -147,11 +156,11 @@ app.post('/api/submit', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('submissions')
-      .insert([{ 
-        name, 
-        email, 
-        callsign, 
-        experience, 
+      .insert([{
+        name,
+        email,
+        callsign,
+        experience,
         reason,
         selected_aircrafts: aircrafts
       }]);
@@ -311,9 +320,9 @@ app.post('/api/action', async (req, res) => {
       console.log('Updating submission:', { id, status: action, registrations: assignedRegistrations });
       const { error: updateError } = await supabase
         .from('submissions')
-        .update({ 
+        .update({
           status: action,
-          registrations: assignedRegistrations 
+          registrations: assignedRegistrations
         })
         .eq('id', id);
 
@@ -325,7 +334,7 @@ app.post('/api/action', async (req, res) => {
       try {
         const emailContent = await ejs.renderFile(
           path.join(__dirname, 'views', 'email-template.ejs'),
-          { 
+          {
             name: data.name,
             tempPassword,
             loginUrl: 'https://comet-jet-site.vercel.app/login'
@@ -406,38 +415,52 @@ app.post('/api/update-pilot', async (req, res) => {
 });
 
 app.post('/api/change-password', async (req, res) => {
-  const { email, currentPassword, newPassword } = req.body;
   try {
-    const { data, error } = await supabase
+    const { pilotId, currentPassword, newPassword } = req.body;
+    console.log('Change password request:', { pilotId }); // Debug
+    if (!pilotId || !currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Brak wymaganych danych' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'Nowe hasło musi mieć co najmniej 8 znaków' });
+    }
+    // Pobierz dane pilota
+    const { data: pilot, error } = await supabase
       .from('pilots')
-      .select('password, first_login')
-      .eq('email', email)
+      .select('*')
+      .eq('id', pilotId)
       .single();
-
-    if (error || !data) {
-      return res.status(404).json({ error: 'Pilot not found' });
+    console.log('Supabase response:', { pilot, error }); // Debug
+    if (error || !pilot) {
+      return res.status(404).json({ error: 'Pilot nie znaleziony' });
     }
-
-    const isMatch = await bcrypt.compare(currentPassword, data.password);
-    if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid current password' });
+    // Sprawdź aktualne hasło
+    const validPassword = await bcrypt.compare(currentPassword, pilot.password);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Nieprawidłowe aktualne hasło' });
     }
-
+    // Zahashuj nowe hasło
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    // Zaktualizuj hasło i ustaw first_login na false
     const { error: updateError } = await supabase
       .from('pilots')
       .update({ password: hashedNewPassword, first_login: false })
-      .eq('email', email);
-
+      .eq('id', pilotId);
     if (updateError) {
-      console.error('Błąd zmiany hasła:', updateError);
-      return res.status(500).json({ error: 'Database error', details: updateError.message });
+      console.error('Błąd aktualizacji hasła:', updateError);
+      return res.status(500).json({ error: 'Błąd aktualizacji hasła' });
     }
-
-    res.status(200).json({ message: 'Password changed successfully' });
-  } catch (err) {
-    console.error('Server error in /api/change-password:', err);
-    res.status(500).json({ error: 'Internal server error', details: err.message });
+    // Wyślij email z potwierdzeniem
+    await sendEmail(
+      pilot.email,
+      'Potwierdzenie zmiany hasła',
+      `Twoje hasło w systemie CometJet zostało pomyślnie zmienione. Jeśli to nie Ty dokonałeś zmiany, skontaktuj się z administratorem.`,
+      false
+    );
+    return res.json({ message: 'Hasło zmienione pomyślnie' });
+  } catch (error) {
+    console.error('Błąd zmiany hasła:', error);
+    return res.status(500).json({ error: 'Błąd serwera' });
   }
 });
 
@@ -553,54 +576,6 @@ app.get('/debug', async (req, res) => {
     }
   } catch (err) {
     res.send('Błąd serwera: ' + err.message);
-  }
-});
-
-app.post('/api/change-password', async (req, res) => {
-  try {
-    const { pilotId, currentPassword, newPassword } = req.body;
-    if (!pilotId || !currentPassword || !newPassword) {
-      return res.status(400).json({ error: 'Brak wymaganych danych' });
-    }
-    if (newPassword.length < 8) {
-      return res.status(400).json({ error: 'Nowe hasło musi mieć co najmniej 8 znaków' });
-    }
-    // Pobierz dane pilota
-    const { data: pilot, error } = await supabase
-      .from('pilots')
-      .select('*')
-      .eq('id', pilotId)
-      .single();
-    if (error || !pilot) {
-      return res.status(404).json({ error: 'Pilot nie znaleziony' });
-    }
-    // Sprawdź aktualne hasło
-    const validPassword = await bcrypt.compare(currentPassword, pilot.password);
-    if (!validPassword) {
-      return res.status(401).json({ error: 'Nieprawidłowe aktualne hasło' });
-    }
-    // Zahashuj nowe hasło
-    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-    // Zaktualizuj hasło i ustaw first_login na false
-    const { error: updateError } = await supabase
-      .from('pilots')
-      .update({ password: hashedNewPassword, first_login: false })
-      .eq('id', pilotId);
-    if (updateError) {
-      console.error('Błąd aktualizacji hasła:', updateError);
-      return res.status(500).json({ error: 'Błąd aktualizacji hasła' });
-    }
-    // Wyślij email z potwierdzeniem
-    await transporter.sendMail({
-      from: '"CometJet" <hello.cometjet@gmail.com>',
-      to: pilot.email,
-      subject: 'Potwierdzenie zmiany hasła',
-      text: `Twoje hasło w systemie CometJet zostało pomyślnie zmienione. Jeśli to nie Ty dokonałeś zmiany, skontaktuj się z administratorem.`
-    });
-    return res.json({ message: 'Hasło zmienione pomyślnie' });
-  } catch (error) {
-    console.error('Błąd zmiany hasła:', error);
-    return res.status(500).json({ error: 'Błąd serwera' });
   }
 });
 
