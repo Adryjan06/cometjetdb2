@@ -143,24 +143,30 @@ app.get('/api/pilot/:id', async (req, res) => {
 
 app.post('/api/submit', async (req, res) => {
   const { name, email, callsign, experience, reason, aircrafts } = req.body;
-  const { data, error } = await supabase
-    .from('submissions')
-    .insert([{ 
-      name, 
-      email, 
-      callsign, 
-      experience, 
-      reason,
-      selected_aircrafts: aircrafts
-    }]);
+  console.log('Received /api/submit:', { name, email, callsign, experience, reason, aircrafts });
+  try {
+    const { data, error } = await supabase
+      .from('submissions')
+      .insert([{ 
+        name, 
+        email, 
+        callsign, 
+        experience, 
+        reason,
+        selected_aircrafts: aircrafts
+      }]);
 
-  if (error) {
-    console.error('Supabase error in /api/submit:', error);
-    return res.status(500).send("Błąd bazy danych");
+    if (error) {
+      console.error('Supabase error in /api/submit:', error);
+      return res.status(500).json({ error: 'Database error', details: error.message });
+    }
+
+    await sendEmail(email, "Thank you for your application!", "Your application has been accepted. We will get back to you within 3 days.");
+    res.status(200).json({ message: 'Application submitted successfully' });
+  } catch (err) {
+    console.error('Server error in /api/submit:', err);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
   }
-
-  await sendEmail(email, "Thank you for your application!", "Your application has been accepted. We will get back to you within 3 days.");
-  res.sendStatus(200);
 });
 
 app.get('/api/applications', async (req, res) => {
@@ -209,7 +215,6 @@ app.get('/api/posts', async (req, res) => {
     const { data, error } = await supabase
       .from('posts')
       .select('*')
-      .eq('is_published', true)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -252,12 +257,12 @@ app.post('/api/action', async (req, res) => {
     const { data, error } = await supabase.from('submissions').select('*').eq('id', id).single();
     if (!data || error) {
       console.error('Błąd pobierania zgłoszenia:', error);
-      return res.status(404).send('Zgłoszenie nie znalezione');
+      return res.status(404).json({ error: 'Zgłoszenie nie znalezione', details: error?.message });
     }
 
     if (data.status === 'accept' || data.status === 'reject') {
       console.log(`Zgłoszenie ${id} już ma status: ${data.status}`);
-      return res.redirect('/admin');
+      return res.status(400).json({ error: `Zgłoszenie już przetworzone jako ${data.status}` });
     }
 
     if (action === "accept") {
@@ -267,13 +272,21 @@ app.post('/api/action', async (req, res) => {
 
       // Generate registrations if not provided
       let assignedRegistrations = registrations || {};
-      if (!registrations) {
+      if (!registrations || Object.keys(registrations).length === 0) {
         assignedRegistrations = {};
         data.selected_aircrafts.forEach(aircraft => {
           const letter = aircraftRegistrationMap[aircraft];
           const code = generateRandomCode();
           assignedRegistrations[aircraft] = `SP-${code[0]}${letter}${code[1]}`;
         });
+      }
+
+      // Validate registrations
+      for (const [aircraft, reg] of Object.entries(assignedRegistrations)) {
+        if (!reg.match(/^SP-[A-Z]{3}$/)) {
+          console.error('Invalid registration format:', { aircraft, reg });
+          return res.status(400).json({ error: `Nieprawidłowy format rejestracji dla ${aircraft}: ${reg}. Użyj formatu SP-XYZ.` });
+        }
       }
 
       // Create pilot account
@@ -309,15 +322,20 @@ app.post('/api/action', async (req, res) => {
         return res.status(500).json({ error: 'Błąd aktualizacji zgłoszenia', details: updateError.message });
       }
 
-      const emailContent = await ejs.renderFile(
-        path.join(__dirname, 'views', 'email-template.ejs'),
-        { 
-          name: data.name,
-          tempPassword,
-          loginUrl: 'https://comet-jet-site.vercel.app/login'
-        }
-      );
-      await sendEmail(data.email, "Welcome to CometJet!", emailContent, true);
+      try {
+        const emailContent = await ejs.renderFile(
+          path.join(__dirname, 'views', 'email-template.ejs'),
+          { 
+            name: data.name,
+            tempPassword,
+            loginUrl: 'https://comet-jet-site.vercel.app/login'
+          }
+        );
+        await sendEmail(data.email, "Welcome to CometJet!", emailContent, true);
+      } catch (emailErr) {
+        console.error('Błąd wysyłania emaila:', emailErr);
+        return res.status(500).json({ error: 'Błąd wysyłania emaila', details: emailErr.message });
+      }
     } else {
       const rejectionMessage = `
 # CometJet - Recruitment Outcome Notification
@@ -334,7 +352,13 @@ Best regards,
 KayJayKay and Aviaced  
 CometJet VA CEOs
       `;
-      await sendEmail(data.email, "CometJet - Recruitment Outcome Notification", rejectionMessage);
+      try {
+        await sendEmail(data.email, "CometJet - Recruitment Outcome Notification", rejectionMessage);
+      } catch (emailErr) {
+        console.error('Błąd wysyłania emaila:', emailErr);
+        return res.status(500).json({ error: 'Błąd wysyłania emaila', details: emailErr.message });
+      }
+
       const { error: updateError } = await supabase
         .from('submissions')
         .update({ status: action })
@@ -346,7 +370,7 @@ CometJet VA CEOs
       }
     }
 
-    res.redirect('/admin');
+    res.status(200).json({ message: 'Action completed successfully' });
   } catch (err) {
     console.error('Błąd w /api/action:', err);
     res.status(500).json({ error: 'Błąd przetwarzania akcji', details: err.message });
@@ -357,6 +381,14 @@ app.post('/api/update-pilot', async (req, res) => {
   const { id, name, email, registrations } = req.body;
   console.log('Received /api/update-pilot request:', { id, name, email, registrations });
   try {
+    // Validate registrations
+    for (const [aircraft, reg] of Object.entries(registrations || {})) {
+      if (!reg.match(/^SP-[A-Z]{3}$/)) {
+        console.error('Invalid registration format:', { aircraft, reg });
+        return res.status(400).json({ error: `Nieprawidłowy format rejestracji dla ${aircraft}: ${reg}. Użyj formatu SP-XYZ.` });
+      }
+    }
+
     const { error } = await supabase
       .from('pilots')
       .update({ name, email, registrations })
@@ -419,25 +451,25 @@ app.get('/api/posts/:id', async (req, res) => {
       .single();
 
     if (error || !data) {
-      return res.status(404).json({ error: "Post not found" });
+      return res.status(404).json({ error: 'Post not found' });
     }
     res.json(data);
   } catch (err) {
     console.error('Server error:', err);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 });
 
 app.post('/api/posts', async (req, res) => {
   const { id, title, content, author, image_url, is_published } = req.body;
   if (!title || !content) {
-    return res.status(400).json({ error: "Title and content are required" });
+    return res.status(400).json({ error: 'Title and content are required' });
   }
 
   const postData = {
     title,
     content,
-    author: author || "Admin",
+    author: author || 'Admin',
     image_url: image_url || null,
     is_published: is_published || false,
     updated_at: new Date().toISOString()
@@ -466,7 +498,7 @@ app.post('/api/posts', async (req, res) => {
     res.status(200).json(data);
   } catch (err) {
     console.error('Błąd bazy danych:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Database error', details: err.message });
   }
 });
 
@@ -479,10 +511,21 @@ app.delete('/api/posts/:id', async (req, res) => {
       .eq('id', id);
 
     if (error) throw error;
-    res.status(200).json({ message: "Post deleted" });
+    res.status(200).json({ message: 'Post deleted' });
   } catch (err) {
     console.error('Błąd bazy danych:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Database error', details: err.message });
+  }
+});
+
+app.post('/api/send-email', async (req, res) => {
+  const { to, subject, message } = req.body;
+  try {
+    await sendEmail(to, subject, message);
+    res.status(200).json({ message: 'Email sent successfully' });
+  } catch (err) {
+    console.error('Błąd wysyłania emaila:', err);
+    res.status(500).json({ error: 'Błąd wysyłania emaila', details: err.message });
   }
 });
 
