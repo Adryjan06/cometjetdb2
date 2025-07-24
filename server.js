@@ -121,15 +121,35 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+app.get('/api/pilot/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { data, error } = await supabase
+      .from('pilots')
+      .select('id, name, email, registrations')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ error: 'Pilot not found' });
+    }
+
+    res.status(200).json(data);
+  } catch (err) {
+    console.error('Server error in /api/pilot/:id:', err);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
 app.post('/api/submit', async (req, res) => {
   const { name, email, callsign, experience, reason, aircrafts } = req.body;
   const { data, error } = await supabase
     .from('submissions')
-    .insert([{
-      name,
-      email,
-      callsign,
-      experience,
+    .insert([{ 
+      name, 
+      email, 
+      callsign, 
+      experience, 
       reason,
       selected_aircrafts: aircrafts
     }]);
@@ -272,14 +292,14 @@ app.post('/api/action', async (req, res) => {
       }
 
       // Update submission with registrations and status
-      await supabase.from('submissions').update({
+      await supabase.from('submissions').update({ 
         status: action,
-        registrations: assignedRegistrations
+        registrations: assignedRegistrations 
       }).eq('id', id);
 
       const emailContent = await ejs.renderFile(
         path.join(__dirname, 'views', 'email-template.ejs'),
-        {
+        { 
           name: data.name,
           tempPassword,
           loginUrl: 'https://comet-jet-site.vercel.app/login'
@@ -445,6 +465,14 @@ app.delete('/api/posts/:id', async (req, res) => {
   }
 });
 
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+app.get('/pilot-dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'pilot-dashboard.html'));
+});
+
 // Debug endpoint
 app.get('/debug', async (req, res) => {
   const fs = require('fs');
@@ -462,10 +490,6 @@ app.get('/debug', async (req, res) => {
   } catch (err) {
     res.send('Błąd serwera: ' + err.message);
   }
-});
-
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
