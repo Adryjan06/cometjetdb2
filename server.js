@@ -556,4 +556,52 @@ app.get('/debug', async (req, res) => {
   }
 });
 
+app.post('/api/change-password', async (req, res) => {
+  try {
+    const { pilotId, currentPassword, newPassword } = req.body;
+    if (!pilotId || !currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Brak wymaganych danych' });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'Nowe hasło musi mieć co najmniej 8 znaków' });
+    }
+    // Pobierz dane pilota
+    const { data: pilot, error } = await supabase
+      .from('pilots')
+      .select('*')
+      .eq('id', pilotId)
+      .single();
+    if (error || !pilot) {
+      return res.status(404).json({ error: 'Pilot nie znaleziony' });
+    }
+    // Sprawdź aktualne hasło
+    const validPassword = await bcrypt.compare(currentPassword, pilot.password);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Nieprawidłowe aktualne hasło' });
+    }
+    // Zahashuj nowe hasło
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    // Zaktualizuj hasło i ustaw first_login na false
+    const { error: updateError } = await supabase
+      .from('pilots')
+      .update({ password: hashedNewPassword, first_login: false })
+      .eq('id', pilotId);
+    if (updateError) {
+      console.error('Błąd aktualizacji hasła:', updateError);
+      return res.status(500).json({ error: 'Błąd aktualizacji hasła' });
+    }
+    // Wyślij email z potwierdzeniem
+    await transporter.sendMail({
+      from: '"CometJet" <hello.cometjet@gmail.com>',
+      to: pilot.email,
+      subject: 'Potwierdzenie zmiany hasła',
+      text: `Twoje hasło w systemie CometJet zostało pomyślnie zmienione. Jeśli to nie Ty dokonałeś zmiany, skontaktuj się z administratorem.`
+    });
+    return res.json({ message: 'Hasło zmienione pomyślnie' });
+  } catch (error) {
+    console.error('Błąd zmiany hasła:', error);
+    return res.status(500).json({ error: 'Błąd serwera' });
+  }
+});
+
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
