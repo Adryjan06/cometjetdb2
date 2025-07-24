@@ -5,6 +5,7 @@ const path = require('path');
 const supabase = require('./supabaseClient');
 const cors = require('cors');
 const ejs = require('ejs');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,6 +33,32 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Aircraft registration mapping
+const aircraftRegistrationMap = {
+  'Airbus A320neo IniBuilds': 'J',
+  'Airbus A320 Fenix': 'F',
+  'Airbus A320 FlyByWire': 'F',
+  'Airbus A321neo IniBuilds': 'O',
+  'Airbus A330neo': 'X',
+  'Airbus A350': 'A',
+  'Airbus A380 FlyByWire': 'V',
+  'Boeing 737': 'N',
+  'Boeing 737 MAX': 'M',
+  'Boeing 787': 'D',
+  'Boeing 777-300ER': 'P',
+  'Embraer E175': 'E'
+};
+
+// Generate random 2-letter code for registration
+function generateRandomCode() {
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let code = '';
+  for (let i = 0; i < 2; i++) {
+    code += letters.charAt(Math.floor(Math.random() * letters.length));
+  }
+  return code;
+}
+
 // Email sending function
 async function sendEmail(to, subject, content, isHtml = false) {
   const transporter = nodemailer.createTransport({
@@ -58,16 +85,51 @@ async function sendEmail(to, subject, content, isHtml = false) {
   }
 }
 
+// Generate temporary password
+function generateTempPassword() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let password = '';
+  for (let i = 0; i < 12; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
+
 // Endpoints
+app.post('/api/login', async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('pilots')
+      .select('id, password, first_login')
+      .eq('email', email)
+      .single();
+
+    if (error || !data) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    const isMatch = await bcrypt.compare(password, data.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    res.status(200).json({ message: 'Login successful', firstLogin: data.first_login, pilotId: data.id });
+  } catch (err) {
+    console.error('Server error in /api/login:', err);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
 app.post('/api/submit', async (req, res) => {
- const { name, email, callsign, experience, reason, aircrafts } = req.body;
+  const { name, email, callsign, experience, reason, aircrafts } = req.body;
   const { data, error } = await supabase
     .from('submissions')
-    .insert([{ 
-      name, 
-      email, 
-      callsign, 
-      experience, 
+    .insert([{
+      name,
+      email,
+      callsign,
+      experience,
       reason,
       selected_aircrafts: aircrafts
     }]);
@@ -97,6 +159,26 @@ app.get('/api/applications', async (req, res) => {
     res.json(data);
   } catch (err) {
     console.error('Server error in /api/applications:', err);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
+app.get('/api/pilots', async (req, res) => {
+  try {
+    console.log('Fetching pilots from Supabase...');
+    const { data, error } = await supabase
+      .from('pilots')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error in /api/pilots:', error);
+      return res.status(500).json({ error: 'Database error', details: error.message });
+    }
+    console.log('Pilots fetched:', data);
+    res.json(data);
+  } catch (err) {
+    console.error('Server error in /api/pilots:', err);
     res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 });
@@ -143,7 +225,7 @@ app.get('/admin', async (req, res) => {
 });
 
 app.post('/api/action', async (req, res) => {
-  const { id, action } = req.body;
+  const { id, action, registrations } = req.body;
   const { data, error } = await supabase.from('submissions').select('*').eq('id', id).single();
   if (!data || error) {
     console.error('Błąd pobierania zgłoszenia:', error);
@@ -157,9 +239,51 @@ app.post('/api/action', async (req, res) => {
 
   try {
     if (action === "accept") {
+      // Generate temporary password
+      const tempPassword = generateTempPassword();
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+      // Generate registrations if not provided
+      let assignedRegistrations = registrations || {};
+      if (!registrations) {
+        assignedRegistrations = {};
+        data.selected_aircrafts.forEach(aircraft => {
+          const letter = aircraftRegistrationMap[aircraft];
+          const code = generateRandomCode();
+          assignedRegistrations[aircraft] = `SP-${code[0]}${letter}${code[1]}`;
+        });
+      }
+
+      // Create pilot account
+      const { error: pilotError } = await supabase
+        .from('pilots')
+        .insert([{
+          email: data.email,
+          name: data.name,
+          password: hashedPassword,
+          registrations: assignedRegistrations,
+          first_login: true,
+          created_at: new Date().toISOString()
+        }]);
+
+      if (pilotError) {
+        console.error('Błąd tworzenia konta pilota:', pilotError);
+        throw pilotError;
+      }
+
+      // Update submission with registrations and status
+      await supabase.from('submissions').update({
+        status: action,
+        registrations: assignedRegistrations
+      }).eq('id', id);
+
       const emailContent = await ejs.renderFile(
         path.join(__dirname, 'views', 'email-template.ejs'),
-        { name: data.name }
+        {
+          name: data.name,
+          tempPassword,
+          loginUrl: 'https://comet-jet-site.vercel.app/login'
+        }
       );
       await sendEmail(data.email, "Welcome to CometJet!", emailContent, true);
     } else {
@@ -179,9 +303,9 @@ KayJayKay and Aviaced
 CometJet VA CEOs
       `;
       await sendEmail(data.email, "CometJet - Recruitment Outcome Notification", rejectionMessage);
+      await supabase.from('submissions').update({ status: action }).eq('id', id);
     }
 
-    await supabase.from('submissions').update({ status: action }).eq('id', id);
     res.redirect('/admin');
   } catch (err) {
     console.error('Błąd w /api/action:', err);
@@ -189,18 +313,58 @@ CometJet VA CEOs
   }
 });
 
-app.post('/api/send-email', async (req, res) => {
-  const { to, subject, message } = req.body;
-  if (!to || !subject || !message) {
-    return res.status(400).json({ error: 'Brak wymaganych pól: to, subject, message' });
-  }
-
+app.post('/api/update-pilot', async (req, res) => {
+  const { id, name, email, registrations } = req.body;
   try {
-    await sendEmail(to, subject, message);
-    res.status(200).json({ message: 'Email wysłany' });
-  } catch (error) {
-    console.error('Błąd wysyłania emaila:', error);
-    res.status(500).json({ error: 'Błąd wysyłania emaila' });
+    const { error } = await supabase
+      .from('pilots')
+      .update({ name, email, registrations })
+      .eq('id', id);
+
+    if (error) {
+      console.error('Błąd aktualizacji pilota:', error);
+      return res.status(500).json({ error: 'Database error', details: error.message });
+    }
+    res.status(200).json({ message: 'Pilot updated successfully' });
+  } catch (err) {
+    console.error('Server error in /api/update-pilot:', err);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
+app.post('/api/change-password', async (req, res) => {
+  const { email, currentPassword, newPassword } = req.body;
+  try {
+    const { data, error } = await supabase
+      .from('pilots')
+      .select('password, first_login')
+      .eq('email', email)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ error: 'Pilot not found' });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, data.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Invalid current password' });
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    const { error: updateError } = await supabase
+      .from('pilots')
+      .update({ password: hashedNewPassword, first_login: false })
+      .eq('email', email);
+
+    if (updateError) {
+      console.error('Błąd zmiany hasła:', updateError);
+      return res.status(500).json({ error: 'Database error', details: updateError.message });
+    }
+
+    res.status(200).json({ message: 'Password changed successfully' });
+  } catch (err) {
+    console.error('Server error in /api/change-password:', err);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 });
 
@@ -298,6 +462,10 @@ app.get('/debug', async (req, res) => {
   } catch (err) {
     res.send('Błąd serwera: ' + err.message);
   }
+});
+
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
