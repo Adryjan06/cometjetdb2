@@ -300,7 +300,7 @@ app.post('/api/action', async (req, res) => {
 
       // Create pilot account
       console.log('Creating pilot account:', { email: data.email, name: data.name, registrations: assignedRegistrations });
-      const { error: pilotError } = await supabase
+      const { data: newPilot, error: pilotError } = await supabase
         .from('pilots')
         .insert([{
           email: data.email,
@@ -309,13 +309,16 @@ app.post('/api/action', async (req, res) => {
           registrations: assignedRegistrations,
           first_login: true,
           created_at: new Date().toISOString()
-        }]);
+        }])
+        .select('id')
+        .single();
 
       if (pilotError) {
         console.error('Błąd tworzenia konta pilota:', pilotError);
         return res.status(500).json({ error: 'Błąd tworzenia konta pilota', details: pilotError.message });
       }
 
+      console.log('New pilot created with id:', newPilot.id); // Debug
       // Update submission with registrations and status
       console.log('Updating submission:', { id, status: action, registrations: assignedRegistrations });
       const { error: updateError } = await supabase
@@ -417,7 +420,7 @@ app.post('/api/update-pilot', async (req, res) => {
 app.post('/api/change-password', async (req, res) => {
   try {
     const { pilotId, currentPassword, newPassword } = req.body;
-    console.log('Change password request:', { pilotId }); // Debug
+    console.log('Change password request:', { pilotId, currentPassword: '***', newPassword: '***' }); // Debug
     if (!pilotId || !currentPassword || !newPassword) {
       return res.status(400).json({ error: 'Brak wymaganych danych' });
     }
@@ -430,25 +433,30 @@ app.post('/api/change-password', async (req, res) => {
       .select('*')
       .eq('id', pilotId)
       .single();
-    console.log('Supabase response:', { pilot, error }); // Debug
+    console.log('Supabase fetch pilot:', { pilotId, pilot: pilot ? { id: pilot.id, email: pilot.email } : null, error }); // Debug
     if (error || !pilot) {
       return res.status(404).json({ error: 'Pilot nie znaleziony' });
     }
     // Sprawdź aktualne hasło
     const validPassword = await bcrypt.compare(currentPassword, pilot.password);
+    console.log('Password validation:', { validPassword }); // Debug
     if (!validPassword) {
       return res.status(401).json({ error: 'Nieprawidłowe aktualne hasło' });
     }
     // Zahashuj nowe hasło
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    console.log('New password hashed'); // Debug
     // Zaktualizuj hasło i ustaw first_login na false
-    const { error: updateError } = await supabase
+    const { data: updatedPilot, error: updateError } = await supabase
       .from('pilots')
       .update({ password: hashedNewPassword, first_login: false })
-      .eq('id', pilotId);
+      .eq('id', pilotId)
+      .select()
+      .single();
+    console.log('Supabase update pilot:', { updatedPilot, updateError }); // Debug
     if (updateError) {
       console.error('Błąd aktualizacji hasła:', updateError);
-      return res.status(500).json({ error: 'Błąd aktualizacji hasła' });
+      return res.status(500).json({ error: 'Błąd aktualizacji hasła', details: updateError.message });
     }
     // Wyślij email z potwierdzeniem
     await sendEmail(
@@ -457,10 +465,11 @@ app.post('/api/change-password', async (req, res) => {
       `Twoje hasło w systemie CometJet zostało pomyślnie zmienione. Jeśli to nie Ty dokonałeś zmiany, skontaktuj się z administratorem.`,
       false
     );
+    console.log('Password change email sent to:', pilot.email); // Debug
     return res.json({ message: 'Hasło zmienione pomyślnie' });
   } catch (error) {
     console.error('Błąd zmiany hasła:', error);
-    return res.status(500).json({ error: 'Błąd serwera' });
+    return res.status(500).json({ error: 'Błąd serwera', details: error.message });
   }
 });
 
