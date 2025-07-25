@@ -757,7 +757,10 @@ app.use((req, res, next) => {
 
 app.get('/api/keepalive', (req, res) => {
   res.send('OK');
-})
+});
+
+console.log('Pilots data:', pilots);
+console.log('Model counts:', modelCounts);
 
 
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
