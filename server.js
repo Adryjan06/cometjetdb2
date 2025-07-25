@@ -1,3 +1,4 @@
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
@@ -19,21 +20,22 @@ if (!process.env.JWT_SECRET) {
 
 // CORS configuration
 const allowedOrigins = [
-  'https://comet-jet-site.vercel.app',
-  'https://comet-jet-site.vercel.app/',
-  'https://comet-jet-site.vercel.app/index.html',
   'https://cometjetdb2.onrender.com',
   'http://localhost:3000'
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+    if (!origin) return callback(null, true); // Allow requests with no origin (e.g., server-to-server)
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
     }
-    return callback(null, true);
+    // Allow Vercel preview URLs dynamically
+    if (origin.includes('vercel.app') && origin.startsWith('https://comet-jet-site')) {
+      return callback(null, true);
+    }
+    const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+    return callback(new Error(msg), false);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
