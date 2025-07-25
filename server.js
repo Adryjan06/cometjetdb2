@@ -1,4 +1,3 @@
-
 const express = require('express');
 const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
@@ -148,6 +147,7 @@ const aircraftRegistrationMap = {
   'Boeing 777-300ER': 'P',
   'Embraer E175': 'E'
 };
+
 
 // Generate random 2-letter code for registration
 function generateRandomCode() {
@@ -760,20 +760,6 @@ app.use((req, res, next) => {
 app.get('/api/keepalive', (req, res) => {
   res.send('OK');
 });
-
-app.use(cors({
-  origin: function (origin, callback) {
-    console.log('Pochodzenie żądania:', origin);
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'Polityka CORS nie pozwala na dostęp z tego pochodzenia.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
 
 
 
