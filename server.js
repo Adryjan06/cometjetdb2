@@ -12,6 +12,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key'; // Ustaw w zmiennych środowiskowych na Render
 
+// Sprawdzenie JWT_SECRET
+if (!process.env.JWT_SECRET) {
+  console.warn('Warning: JWT_SECRET is not set in environment variables. Using default value.');
+}
+
 // CORS configuration
 const allowedOrigins = [
   'https://comet-jet-site.vercel.app',
@@ -42,19 +47,22 @@ app.use(express.static(path.join(__dirname, 'public')));
 // JWT Middleware
 const verifyToken = async (req, res, next) => {
   const token = req.headers['authorization']?.split(' ')[1];
-  console.log('Verifying token:', { token: token ? '***' : null }); // Debug
+  console.log('Verifying token:', {
+    token: token ? '***' : null,
+    headers: req.headers['authorization'] ? 'Authorization header present' : 'No Authorization header'
+  });
   if (!token) {
     console.log('No token provided');
     return res.status(401).json({ error: 'Brak tokenu, zaloguj się' });
   }
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    console.log('Token decoded:', { pilotId: decoded.pilotId, role: decoded.role });
+    console.log('Token decoded:', { pilotId: decoded.pilotId, role: decoded.role, name: decoded.name });
     req.user = decoded;
     next();
   } catch (err) {
     console.error('Invalid token:', err.message);
-    return res.status(401).json({ error: 'Nieprawidłowy lub wygasły token' });
+    return res.status(401).json({ error: 'Nieprawidłowy lub wygasły token', details: err.message });
   }
 };
 
@@ -111,10 +119,10 @@ async function sendEmail(to, subject, content, isHtml = false) {
 
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log("Mail sent: " + info.response);
+    console.log('Mail sent:', info.response);
     return { success: true, response: info.response };
   } catch (err) {
-    console.error("Error sending email:", err);
+    console.error('Error sending email:', err);
     throw err;
   }
 }
@@ -132,7 +140,7 @@ function generateTempPassword() {
 // Endpoints
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
-  console.log('Login request:', { email, password: '***' }); // Debug
+  console.log('Login request:', { email, password: '***' });
   try {
     const { data, error } = await supabase
       .from('pilots')
@@ -140,16 +148,16 @@ app.post('/api/login', async (req, res) => {
       .eq('email', email)
       .single();
 
-    console.log('Supabase response:', { data: data ? { id: data.id, first_login: data.first_login, role: data.role } : null, error }); // Debug
+    console.log('Supabase response:', { data: data ? { id: data.id, first_login: data.first_login, role: data.role } : null, error });
     if (error || !data) {
-      console.log('Pilot not found for email:', email); // Debug
-      return res.status(401).json({ error: 'Invalid email or password' });
+      console.log('Pilot not found for email:', email);
+      return res.status(401).json({ error: 'Nieprawidłowy email lub hasło' });
     }
 
     const isMatch = await bcrypt.compare(password, data.password);
-    console.log('Password match:', { isMatch }); // Debug
+    console.log('Password match:', { isMatch });
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ error: 'Nieprawidłowy email lub hasło' });
     }
 
     // Generate JWT
@@ -158,11 +166,11 @@ app.post('/api/login', async (req, res) => {
       JWT_SECRET,
       { expiresIn: '1h' }
     );
-    console.log('Login successful, pilotId:', data.id, 'role:', data.role, 'token:', '***'); // Debug
-    res.status(200).json({ message: 'Login successful', token, firstLogin: data.first_login, pilotId: data.id, role: data.role, name: data.name });
+    console.log('Login successful, pilotId:', data.id, 'role:', data.role, 'token:', '***');
+    res.status(200).json({ message: 'Logowanie pomyślne', token, firstLogin: data.first_login, pilotId: data.id, role: data.role, name: data.name });
   } catch (err) {
     console.error('Server error in /api/login:', err);
-    res.status(500).json({ error: 'Internal server error', details: err.message });
+    res.status(500).json({ error: 'Błąd serwera', details: err.message });
   }
 });
 
@@ -182,7 +190,7 @@ app.get('/api/pilot/:id', verifyToken, async (req, res) => {
     res.json(data);
   } catch (error) {
     console.error('Error fetching pilot:', error);
-    res.status(500).json({ error: 'Error fetching pilot' });
+    res.status(500).json({ error: 'Błąd pobierania danych pilota', details: error.message });
   }
 });
 
@@ -193,7 +201,7 @@ app.post('/api/submit', async (req, res) => {
     // Ensure aircrafts is an array
     const aircraftsArray = Array.isArray(aircrafts) ? aircrafts : (typeof aircrafts === 'string' ? aircrafts.split(',').map(s => s.trim()) : []);
     if (aircraftsArray.length === 0) {
-      return res.status(400).json({ error: 'No aircrafts selected' });
+      return res.status(400).json({ error: 'Nie wybrano żadnych samolotów' });
     }
     const { data, error } = await supabase
       .from('submissions')
@@ -208,14 +216,14 @@ app.post('/api/submit', async (req, res) => {
 
     if (error) {
       console.error('Supabase error in /api/submit:', error);
-      return res.status(500).json({ error: 'Database error', details: error.message });
+      return res.status(500).json({ error: 'Błąd bazy danych', details: error.message });
     }
 
-    await sendEmail(email, "Thank you for your application!", "Your application has been accepted. We will get back to you within 3 days.");
-    res.status(200).json({ message: 'Application submitted successfully' });
+    await sendEmail(email, "Dziękujemy za zgłoszenie!", "Twoje zgłoszenie zostało przyjęte. Odezwiemy się w ciągu 3 dni.");
+    res.status(200).json({ message: 'Zgłoszenie przesłane pomyślnie' });
   } catch (err) {
     console.error('Server error in /api/submit:', err);
-    res.status(500).json({ error: 'Internal server error', details: err.message });
+    res.status(500).json({ error: 'Błąd serwera', details: err.message });
   }
 });
 
@@ -229,13 +237,13 @@ app.get('/api/applications', verifyToken, verifyAdmin, async (req, res) => {
 
     if (error) {
       console.error('Supabase error in /api/applications:', error);
-      return res.status(500).json({ error: 'Database error', details: error.message });
+      return res.status(500).json({ error: 'Błąd bazy danych', details: error.message });
     }
-    console.log('Applications fetched:', data);
+    console.log('Applications fetched:', data.length, 'records');
     res.json(data);
   } catch (err) {
     console.error('Server error in /api/applications:', err);
-    res.status(500).json({ error: 'Internal server error', details: err.message });
+    res.status(500).json({ error: 'Błąd serwera', details: err.message });
   }
 });
 
@@ -249,13 +257,13 @@ app.get('/api/pilots', verifyToken, verifyAdmin, async (req, res) => {
 
     if (error) {
       console.error('Supabase error in /api/pilots:', error);
-      return res.status(500).json({ error: 'Database error', details: error.message });
+      return res.status(500).json({ error: 'Błąd bazy danych', details: error.message });
     }
-    console.log('Pilots fetched:', data);
+    console.log('Pilots fetched:', data.length, 'records');
     res.json(data);
   } catch (err) {
     console.error('Server error in /api/pilots:', err);
-    res.status(500).json({ error: 'Internal server error', details: err.message });
+    res.status(500).json({ error: 'Błąd serwera', details: err.message });
   }
 });
 
@@ -269,13 +277,13 @@ app.get('/api/posts', async (req, res) => {
 
     if (error) {
       console.error('Supabase error in /api/posts:', error);
-      return res.status(500).json({ error: 'Database error', details: error.message });
+      return res.status(500).json({ error: 'Błąd bazy danych', details: error.message });
     }
-    console.log('Posts fetched:', data);
+    console.log('Posts fetched:', data.length, 'records');
     res.json(data);
   } catch (err) {
     console.error('Server error in /api/posts:', err);
-    res.status(500).json({ error: 'Internal server error', details: err.message });
+    res.status(500).json({ error: 'Błąd serwera', details: err.message });
   }
 });
 
@@ -333,7 +341,7 @@ app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
         assignedRegistrations = {};
         if (selectedAircrafts.length === 0) {
           console.warn('No selected aircrafts for registration generation:', { id });
-          return res.status(400).json({ error: 'No aircrafts selected for registration' });
+          return res.status(400).json({ error: 'Nie wybrano samolotów do rejestracji' });
         }
         selectedAircrafts.forEach(aircraft => {
           const letter = aircraftRegistrationMap[aircraft];
@@ -374,7 +382,7 @@ app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
         return res.status(500).json({ error: 'Błąd tworzenia konta pilota', details: pilotError.message });
       }
 
-      console.log('New pilot created with id:', newPilot.id); // Debug
+      console.log('New pilot created with id:', newPilot.id);
       // Update submission with registrations and status
       console.log('Updating submission:', { id, status: action, registrations: assignedRegistrations });
       const { error: updateError } = await supabase
@@ -399,7 +407,7 @@ app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
             loginUrl: 'https://cometjetdb2.onrender.com/login.html'
           }
         );
-        await sendEmail(data.email, "Welcome to CometJet!", emailContent, true);
+        await sendEmail(data.email, "Witaj w CometJet!", emailContent, true);
       } catch (emailErr) {
         console.error('Błąd wysyłania emaila:', emailErr);
         return res.status(500).json({ error: 'Błąd wysyłania emaila', details: emailErr.message });
@@ -421,7 +429,7 @@ KayJayKay and Aviaced
 CometJet VA CEOs
       `;
       try {
-        await sendEmail(data.email, "CometJet - Recruitment Outcome Notification", rejectionMessage);
+        await sendEmail(data.email, "CometJet - Wynik rekrutacji", rejectionMessage);
       } catch (emailErr) {
         console.error('Błąd wysyłania emaila:', emailErr);
         return res.status(500).json({ error: 'Błąd wysyłania emaila', details: emailErr.message });
@@ -438,7 +446,7 @@ CometJet VA CEOs
       }
     }
 
-    res.status(200).json({ message: 'Action completed successfully' });
+    res.status(200).json({ message: 'Akcja wykonana pomyślnie' });
   } catch (err) {
     console.error('Błąd w /api/action:', err);
     res.status(500).json({ error: 'Błąd przetwarzania akcji', details: err.message });
@@ -448,19 +456,22 @@ CometJet VA CEOs
 app.post('/api/update-pilot', verifyToken, verifyAdmin, async (req, res) => {
   try {
     const { id, name, email, registrations, role, registration_code } = req.body;
-    console.log('Received /api/update-pilot request:', req.body);
+    console.log('Received /api/update-pilot request:', { id, name, email, registrations, role, registration_code });
     const { data, error } = await supabase
       .from('pilots')
       .update({ name, email, registrations, role, registration_code })
       .eq('id', id)
       .select()
       .single();
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error in /api/update-pilot:', error);
+      throw error;
+    }
     console.log('Pilot updated successfully:', data);
     res.json(data);
   } catch (error) {
     console.error('Error updating pilot:', error);
-    res.status(500).json({ error: 'Error updating pilot' });
+    res.status(500).json({ error: 'Błąd aktualizacji pilota', details: error.message });
   }
 });
 
@@ -468,56 +479,82 @@ app.post('/api/change-password', verifyToken, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const pilotId = req.user.pilotId;
-    console.log('Change password request:', { pilotId, currentPassword: '***', newPassword: '***' }); // Debug
+    console.log('Change password request:', { pilotId, currentPassword: '***', newPassword: '***' });
+
+    // Sprawdzenie, czy podano wymagane dane
     if (!currentPassword || !newPassword) {
-      console.log('Missing required fields:', { currentPassword: !!currentPassword, newPassword: !!newPassword }); // Debug
-      return res.status(400).json({ error: 'Brak wymaganych danych' });
+      console.log('Missing required fields:', { currentPassword: !!currentPassword, newPassword: !!newPassword });
+      return res.status(400).json({ error: 'Aktualne i nowe hasło są wymagane' });
     }
+
+    // Walidacja długości nowego hasła
     if (newPassword.length < 8) {
-      console.log('New password too short:', { length: newPassword.length }); // Debug
+      console.log('New password too short:', { length: newPassword.length });
       return res.status(400).json({ error: 'Nowe hasło musi mieć co najmniej 8 znaków' });
     }
+
     // Pobierz dane pilota
     const { data: pilot, error: fetchError } = await supabase
       .from('pilots')
       .select('id, email, password, first_login')
       .eq('id', pilotId)
       .single();
-    console.log('Supabase fetch pilot:', { pilotId, pilot: pilot ? { id: pilot.id, email: pilot.email, first_login: pilot.first_login } : null, fetchError }); // Debug
+    console.log('Supabase fetch pilot:', {
+      pilotId,
+      pilot: pilot ? { id: pilot.id, email: pilot.email, first_login: pilot.first_login } : null,
+      fetchError
+    });
+
     if (fetchError || !pilot) {
-      console.log('Pilot not found for id:', pilotId); // Debug
+      console.log('Pilot not found for id:', pilotId);
       return res.status(404).json({ error: 'Pilot nie znaleziony', details: fetchError?.message });
     }
-    // Sprawdź aktualne hasło
-    const validPassword = await bcrypt.compare(currentPassword, pilot.password);
-    console.log('Password validation:', { validPassword }); // Debug
-    if (!validPassword) {
-      console.log('Invalid current password for pilotId:', pilotId); // Debug
-      return res.status(401).json({ error: 'Nieprawidłowe aktualne hasło' });
+
+    // Sprawdź aktualne hasło (tylko jeśli first_login jest false)
+    if (!pilot.first_login) {
+      const validPassword = await bcrypt.compare(currentPassword, pilot.password);
+      console.log('Password validation:', { validPassword });
+      if (!validPassword) {
+        console.log('Invalid current password for pilotId:', pilotId);
+        return res.status(401).json({ error: 'Nieprawidłowe aktualne hasło' });
+      }
     }
+
     // Zahashuj nowe hasło
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-    console.log('New password hashed'); // Debug
+    console.log('New password hashed for pilotId:', pilotId);
+
     // Zaktualizuj hasło i ustaw first_login na false
     const { data: updatedPilot, error: updateError } = await supabase
       .from('pilots')
       .update({ password: hashedNewPassword, first_login: false })
       .eq('id', pilotId)
-      .select('id, email, password, first_login')
+      .select('id, email, first_login')
       .single();
-    console.log('Supabase update pilot:', { updatedPilot: updatedPilot ? { id: updatedPilot.id, email: updatedPilot.email, first_login: updatedPilot.first_login } : null, updateError }); // Debug
+    console.log('Supabase update pilot:', {
+      updatedPilot: updatedPilot ? { id: updatedPilot.id, email: updatedPilot.email, first_login: updatedPilot.first_login } : null,
+      updateError
+    });
+
     if (updateError) {
       console.error('Błąd aktualizacji hasła:', updateError);
       return res.status(500).json({ error: 'Błąd aktualizacji hasła', details: updateError.message });
     }
+
     // Wyślij email z potwierdzeniem
-    const emailResult = await sendEmail(
-      pilot.email,
-      'Potwierdzenie zmiany hasła',
-      `Twoje hasło w systemie CometJet zostało pomyślnie zmienione. Jeśli to nie Ty dokonałeś zmiany, skontaktuj się z administratorem.`,
-      false
-    );
-    console.log('Password change email sent:', { email: pilot.email, result: emailResult }); // Debug
+    try {
+      const emailResult = await sendEmail(
+        pilot.email,
+        'Potwierdzenie zmiany hasła - CometJet',
+        `Twoje hasło w systemie CometJet zostało pomyślnie zmienione. Jeśli to nie Ty dokonałeś zmiany, skontaktuj się z administratorem.`,
+        false
+      );
+      console.log('Password change email sent:', { email: pilot.email, result: emailResult });
+    } catch (emailErr) {
+      console.error('Błąd wysyłania emaila potwierdzającego:', emailErr);
+      // Nie przerywamy odpowiedzi, bo hasło zostało zmienione
+    }
+
     return res.status(200).json({ message: 'Hasło zmienione pomyślnie', updatedPilot: { id: updatedPilot.id, first_login: updatedPilot.first_login } });
   } catch (error) {
     console.error('Błąd zmiany hasła:', error);
@@ -535,19 +572,19 @@ app.get('/api/posts/:id', async (req, res) => {
       .single();
 
     if (error || !data) {
-      return res.status(404).json({ error: 'Post not found' });
+      return res.status(404).json({ error: 'Post nie znaleziony' });
     }
     res.json(data);
   } catch (err) {
-    console.error('Server error:', err);
-    res.status(500).json({ error: 'Internal server error', details: err.message });
+    console.error('Server error in /api/posts/:id:', err);
+    res.status(500).json({ error: 'Błąd serwera', details: err.message });
   }
 });
 
 app.post('/api/posts', verifyToken, verifyAdmin, async (req, res) => {
   const { id, title, content, author, image_url, is_published } = req.body;
   if (!title || !content) {
-    return res.status(400).json({ error: 'Title and content are required' });
+    return res.status(400).json({ error: 'Tytuł i treść są wymagane' });
   }
 
   const postData = {
@@ -581,8 +618,8 @@ app.post('/api/posts', verifyToken, verifyAdmin, async (req, res) => {
     }
     res.status(200).json(data);
   } catch (err) {
-    console.error('Błąd bazy danych:', err);
-    res.status(500).json({ error: 'Database error', details: err.message });
+    console.error('Błąd bazy danych w /api/posts:', err);
+    res.status(500).json({ error: 'Błąd bazy danych', details: err.message });
   }
 });
 
@@ -595,10 +632,10 @@ app.delete('/api/posts/:id', verifyToken, verifyAdmin, async (req, res) => {
       .eq('id', id);
 
     if (error) throw error;
-    res.status(200).json({ message: 'Post deleted' });
+    res.status(200).json({ message: 'Post usunięty' });
   } catch (err) {
-    console.error('Błąd bazy danych:', err);
-    res.status(500).json({ error: 'Database error', details: err.message });
+    console.error('Błąd bazy danych w /api/posts/:id:', err);
+    res.status(500).json({ error: 'Błąd bazy danych', details: err.message });
   }
 });
 
@@ -606,7 +643,7 @@ app.post('/api/send-email', verifyToken, verifyAdmin, async (req, res) => {
   const { to, subject, message } = req.body;
   try {
     await sendEmail(to, subject, message);
-    res.status(200).json({ message: 'Email sent successfully' });
+    res.status(200).json({ message: 'Email wysłany pomyślnie' });
   } catch (err) {
     console.error('Błąd wysyłania emaila:', err);
     res.status(500).json({ error: 'Błąd wysyłania emaila', details: err.message });
@@ -645,20 +682,20 @@ app.get('/debug', async (req, res) => {
 });
 
 app.use((req, res, next) => {
-    if (req.path.startsWith('/api')) {
-        const token = req.headers['authorization']?.split(' ')[1];
-        if (token) {
-            try {
-                const decoded = jwt.verify(token, JWT_SECRET);
-                if (decoded.exp * 1000 < Date.now()) {
-                    return res.status(401).json({ error: 'Sesja wygasła' });
-                }
-            } catch (e) {
-                // Ignore invalid tokens for non-auth routes
-            }
+  if (req.path.startsWith('/api')) {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (decoded.exp * 1000 < Date.now()) {
+          return res.status(401).json({ error: 'Sesja wygasła' });
         }
+      } catch (e) {
+        // Ignore invalid tokens for non-auth routes
+      }
     }
-    next();
+  }
+  next();
 });
 
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
