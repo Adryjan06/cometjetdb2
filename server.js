@@ -698,4 +698,59 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get('/api/fleet-stats', async (req, res) => {
+  try {
+    // Pobierz wszystkich pilotów i ich przypisania
+    const { data: pilots, error } = await supabase
+      .from('pilots')
+      .select('registrations');
+    
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({ error: 'Database error', details: error.message });
+    }
+
+    // Zlicz przypisane samoloty dla każdego modelu
+    const modelCounts = {};
+    
+    pilots.forEach(pilot => {
+      if (pilot.registrations && typeof pilot.registrations === 'object') {
+        Object.keys(pilot.registrations).forEach(model => {
+          if (modelCounts[model]) {
+            modelCounts[model]++;
+          } else {
+            modelCounts[model] = 1;
+          }
+        });
+      }
+    });
+
+    // Uzupełnij modele, które nie są używane (0)
+    const allModels = [
+      "Airbus A320neo IniBuilds",
+      "Airbus A320 Fenix",
+      "Airbus A321neo IniBuilds",
+      "Airbus A330neo",
+      "Airbus A350",
+      "Airbus A380 FlyByWire",
+      "Boeing 737-800",
+      "Boeing 737 MAX",
+      "Boeing 787",
+      "Boeing 777-300ER",
+      "Embraer E175"
+    ];
+    
+    allModels.forEach(model => {
+      if (!modelCounts.hasOwnProperty(model)) {
+        modelCounts[model] = 0;
+      }
+    });
+
+    res.json(modelCounts);
+  } catch (err) {
+    console.error('Error fetching fleet stats:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+});
+
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
