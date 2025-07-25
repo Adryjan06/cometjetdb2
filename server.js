@@ -20,6 +20,8 @@ if (!process.env.JWT_SECRET) {
 // CORS configuration
 const allowedOrigins = [
   'https://comet-jet-site.vercel.app',
+  'https://comet-jet-site.vercel.app/',
+  'https://comet-jet-site.vercel.app/index.html',
   'https://cometjetdb2.onrender.com',
   'http://localhost:3000'
 ];
@@ -752,6 +754,10 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+app.get('/api/keepalive', (req, res) => {
+  res.send('OK');
+})
 
 
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
