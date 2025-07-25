@@ -53,6 +53,7 @@ app.get('/api/fleet-stats', async (req, res) => {
 
     // Zlicz przypisane samoloty dla każdego modelu
     const modelCounts = {};
+    console.log('Model counts:', modelCounts);
     
     pilots.forEach(pilot => {
       if (pilot.registrations && typeof pilot.registrations === 'object') {
@@ -759,7 +760,7 @@ app.get('/api/keepalive', (req, res) => {
   res.send('OK');
 });
 
-console.log('Model counts:', modelCounts);
+
 
 
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
