@@ -759,7 +759,6 @@ app.get('/api/keepalive', (req, res) => {
   res.send('OK');
 });
 
-console.log('Pilots data:', pilots);
 console.log('Model counts:', modelCounts);
 
 
