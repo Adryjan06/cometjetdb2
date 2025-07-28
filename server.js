@@ -576,7 +576,7 @@ app.post('/api/change-password', verifyToken, async (req, res) => {
         `Twoje hasło w systemie CometJet zostało pomyślnie zmienione.`,
         false
       );
-    } catch (emailErr) {}
+    } catch (emailErr) { }
 
     return res.status(200).json({ message: 'Hasło zmienione pomyślnie', updatedPilot: { id: updatedPilot.id, first_login: updatedPilot.first_login } });
   } catch (error) {
@@ -683,5 +683,21 @@ app.get('/panel-admin', verifyToken, verifyAdmin, (req, res) => {
 app.get('/api/keepalive', (req, res) => {
   res.send('OK');
 });
+app.get('/api/applications/:id', verifyToken, verifyAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('id', id)
+      .single();
 
+    if (error || !data) {
+      return res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
+    }
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Błąd serwera', details: err.message });
+  }
+});
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
