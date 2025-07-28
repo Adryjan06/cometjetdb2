@@ -700,4 +700,26 @@ app.get('/api/applications/:id', verifyToken, verifyAdmin, async (req, res) => {
     res.status(500).json({ error: 'Błąd serwera', details: err.message });
   }
 });
+
+
+
+app.get('/api/applications/:id', verifyToken, verifyAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+});
+
+
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
