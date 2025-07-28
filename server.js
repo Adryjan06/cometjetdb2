@@ -44,6 +44,102 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+app.put('/api/applications/:id/status', verifyToken, verifyAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    // Get application
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (!data || error) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    if (status === "accept") {
+      // Generate registration code and temp password
+      const registrationCode = generateRandomCode();
+      const tempPassword = generateTempPassword();
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+      // Create pilot account
+      const { data: newPilot, error: pilotError } = await supabase
+        .from('pilots')
+        .insert([{
+          email: data.email,
+          name: data.name,
+          password: hashedPassword,
+          first_login: true,
+          role: 'user',
+          registration_code: registrationCode
+        }])
+        .select('id')
+        .single();
+
+      if (pilotError) {
+        console.error('Error creating pilot:', pilotError);
+        return res.status(500).json({ error: 'Error creating pilot account' });
+      }
+
+      // Update application status
+      const { error: updateError } = await supabase
+        .from('submissions')
+        .update({
+          status: 'accept',
+          pilot_id: newPilot.id
+        })
+        .eq('id', id);
+
+      if (updateError) {
+        return res.status(500).json({ error: 'Error updating application' });
+      }
+
+      // Send welcome email
+      const emailContent = `Witaj w CometJet!
+      
+      Twoje konto pilot zostało utworzone.
+      Dane logowania:
+      Email: ${data.email}
+      Tymczasowe hasło: ${tempPassword}
+      
+      Zaloguj się i zmień hasło po pierwszym logowaniu.`;
+
+      await sendEmail(data.email, "Witamy w CometJet!", emailContent);
+
+      res.status(200).json({ message: 'Application accepted' });
+
+    } else if (status === "reject") {
+      // Update application status
+      const { error: updateError } = await supabase
+        .from('submissions')
+        .update({
+          status: 'reject',
+          rejection_reason: 'Odrzucono przez administratora'
+        })
+        .eq('id', id);
+
+      if (updateError) {
+        return res.status(500).json({ error: 'Error updating application' });
+      }
+
+      // Send rejection email
+      const rejectionMsg = `Twoje zgłoszenie do CometJet zostało odrzucone.`;
+      await sendEmail(data.email, "Status zgłoszenia CometJet", rejectionMsg);
+
+      res.status(200).json({ message: 'Application rejected' });
+    } else {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+  } catch (err) {
+    console.error('Error processing application:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+});
+
 app.get('/api/fleet-stats', async (req, res) => {
   try {
     const { data: pilots, error } = await supabase
@@ -443,16 +539,16 @@ app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
       Tymczasowe hasło: ${tempPassword}
       
       Zaloguj się i zmień hasło po pierwszym logowaniu.`;
-      
+
       await sendEmail(data.email, "Witamy w CometJet!", emailContent);
 
       res.status(200).json({ message: 'Application accepted' });
-      
+
     } else if (action === "reject") {
       // Update application status
       const { error: updateError } = await supabase
         .from('submissions')
-        .update({ 
+        .update({
           status: 'reject',
           rejection_reason: 'Odrzucono przez administratora'
         })
@@ -477,11 +573,11 @@ app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
 // Fixed pilot update endpoint
 app.post('/api/update-pilot', verifyToken, verifyAdmin, async (req, res) => {
   try {
-    const { 
-      id, 
-      name, 
-      email, 
-      role, 
+    const {
+      id,
+      name,
+      email,
+      role,
       registration_code,
       country,
       preferred_airport,
@@ -491,7 +587,7 @@ app.post('/api/update-pilot', verifyToken, verifyAdmin, async (req, res) => {
       about,
       avatar
     } = req.body;
-    
+
     const updateData = {
       name,
       email,
@@ -512,7 +608,7 @@ app.post('/api/update-pilot', verifyToken, verifyAdmin, async (req, res) => {
       .eq('id', id)
       .select()
       .single();
-      
+
     if (error) {
       throw error;
     }
