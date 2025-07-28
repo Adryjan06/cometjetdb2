@@ -18,6 +18,16 @@ const allowedOrigins = [
   'http://localhost:3000'
 ];
 
+function generateTempPassword() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+function generateRandomCode() {
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  return Array.from({ length: 2 }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
+}
+
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
@@ -431,7 +441,7 @@ app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
       // Aktualizuj status aplikacji
       const { error: updateError } = await supabase
         .from('submissions')
-        .update({ 
+        .update({
           status: 'accept',
           pilot_id: newPilot.id
         })
@@ -446,7 +456,7 @@ app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
         path.join(__dirname, 'views', 'welcome-email.ejs'),
         { name: data.name, tempPassword }
       );
-      
+
       await sendEmail(data.email, "Welcome to CometJet!", emailContent, true);
 
     } else if (action === "reject") {
@@ -703,7 +713,6 @@ app.post('/api/update-application-status/:id', verifyToken, verifyAdmin, async (
 // Akceptacja zgłoszenia i tworzenie konta pilota
 app.post('/api/accept-application/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { id } = req.params;
-
   try {
     // Pobierz aplikację
     const { data: application, error: appError } = await supabase
@@ -712,11 +721,9 @@ app.post('/api/accept-application/:id', verifyToken, verifyAdmin, async (req, re
       .eq('id', id)
       .single();
 
-    if (appError || !application) throw new Error('Application not found');
-
-    // Generuj tymczasowe hasło
-    const tempPassword = generateTempPassword();
-    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    if (appError || !application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
 
     // Generuj kod rejestracji
     const registrationCode = generateRandomCode();
@@ -727,35 +734,31 @@ app.post('/api/accept-application/:id', verifyToken, verifyAdmin, async (req, re
       .insert([{
         email: application.email,
         name: application.name,
-        password: hashedPassword,
+        password: await bcrypt.hash(generateTempPassword(), 10),
         first_login: true,
         role: 'user',
-        registration_code: registrationCode
+        registration_code: registrationCode,
+        registrations: {}
       }])
       .select('id')
       .single();
 
-    if (pilotError) throw pilotError;
+    if (pilotError) {
+      throw pilotError;
+    }
 
-    // Zaktualizuj status aplikacji i powiąż z pilotem
+    // Aktualizuj status zgłoszenia
     await supabase
       .from('submissions')
-      .update({ 
-        status: 'accepted',
+      .update({
+        status: 'accept',
         pilot_id: pilot.id
       })
       .eq('id', id);
 
-    // Wyślij email powitalny
-    const emailContent = await ejs.renderFile(
-      path.join(__dirname, 'views', 'welcome-email.ejs'),
-      { name: application.name, tempPassword }
-    );
-    
-    await sendEmail(application.email, "Welcome to CometJet!", emailContent, true);
-
-    res.status(200).json({ message: 'Application accepted and pilot account created' });
+    res.status(200).json({ message: 'Application accepted' });
   } catch (err) {
+    console.error('Error accepting application:', err);
     res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
@@ -766,15 +769,32 @@ app.post('/api/reject-application/:id', verifyToken, verifyAdmin, async (req, re
   const { reason } = req.body;
 
   try {
-    // Aktualizuj status aplikacji
+    // Pobierz aplikację
+    const { data: application, error: appError } = await supabase
+      .from('submissions')
+      .select('email')
+      .eq('id', id)
+      .single();
+
+    if (appError || !application) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+
+    // Aktualizuj status
     await supabase
       .from('submissions')
-      .update({ status: 'rejected', rejection_reason: reason })
+      .update({
+        status: 'reject',
+        rejection_reason: reason
+      })
       .eq('id', id);
 
-    // Wyślij email z odmową
-    const rejectionMsg = `Your application has been rejected. Reason: ${reason}`;
-    await sendEmail(application.email, "CometJet Application Status", rejectionMsg);
+    // Wyślij email
+    await sendEmail(
+      application.email,
+      "CometJet Application Status",
+      `Your application has been rejected. Reason: ${reason}`
+    );
 
     res.status(200).json({ message: 'Application rejected' });
   } catch (err) {
