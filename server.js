@@ -1,3 +1,4 @@
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
@@ -10,27 +11,27 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key'; // Ustaw w zmiennych środowiskowych na Render
 
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required');
+// Sprawdzenie JWT_SECRET
+if (!process.env.JWT_SECRET) {
+  console.warn('Warning: JWT_SECRET is not set in environment variables. Using default value.');
 }
 
-// Middleware
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(path.join(__dirname, 'public')));
+// CORS configuration
+const allowedOrigins = [
+  'https://cometjetdb2.onrender.com',
+  'http://localhost:3000'
+];
 
 app.use(cors({
   origin: function (origin, callback) {
-    const allowedOrigins = [
-      'https://cometjetdb2.onrender.com',
-      'http://localhost:3000',
-      'https://comet-jet-site.vercel.app'
-    ];
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin) return callback(null, true); // Allow requests with no origin (e.g., server-to-server)
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    // Allow Vercel preview URLs dynamically
+    if (origin.includes('vercel.app') && origin.startsWith('https://comet-jet-site')) {
       return callback(null, true);
     }
     const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
@@ -40,189 +41,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Utility functions
-function generateTempPassword() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-}
-
-function generateRandomCode() {
-  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  return Array.from({ length: 2 }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
-}
-
-// Email sending function
-async function sendEmail(to, subject, content, isHtml = false) {
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_PASS
-    }
-  });
-
-  const mailOptions = {
-    from: process.env.GMAIL_USER,
-    to,
-    subject,
-    [isHtml ? 'html' : 'text']: content
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`Email sent to ${to}: ${info.response}`);
-    return { success: true, response: info.response };
-  } catch (err) {
-    console.error(`Failed to send email to ${to}:`, err);
-    throw new Error(`Failed to send email: ${err.message}`);
-  }
-}
-
-// JWT Middleware
-const verifyToken = async (req, res, next) => {
-  const token = req.headers['authorization']?.split(' ')[1];
-  if (!token) {
-    return res.status(401).json({ error: 'Brak tokenu, zaloguj się' });
-  }
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    console.error('Token verification failed:', err);
-    return res.status(401).json({ error: 'Nieprawidłowy lub wygasły token', details: err.message });
-  }
-};
-
-const verifyAdmin = (req, res, next) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Brak uprawnień administratora' });
-  }
-  next();
-};
-
-// Aircraft registration mapping
-const aircraftRegistrationMap = {
-  'Airbus A320neo IniBuilds': 'J',
-  'Airbus A320 Fenix': 'F',
-  'Airbus A320 FlyByWire': 'F',
-  'Airbus A321neo IniBuilds': 'O',
-  'Airbus A330neo': 'X',
-  'Airbus A350': 'A',
-  'Airbus A380 FlyByWire': 'V',
-  'Boeing 737': 'N',
-  'Boeing 737 MAX': 'M',
-  'Boeing 787': 'D',
-  'Boeing 777-300ER': 'P',
-  'Embraer E175': 'E'
-};
-
-// Routes
-app.put('/api/applications/:id/status', verifyToken, verifyAdmin, async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-  console.log(`Processing application ${id} with status ${status}`);
-
-  try {
-    const { data, error } = await supabase
-      .from('submissions')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (!data || error) {
-      console.error('Application fetch failed:', error);
-      return res.status(404).json({ error: 'Application not found' });
-    }
-
-    if (status === "accept") {
-      const registrationCode = generateRandomCode();
-      const tempPassword = generateTempPassword();
-      const hashedPassword = await bcrypt.hash(tempPassword, 10);
-
-      const { data: newPilot, error: pilotError } = await supabase
-        .from('pilots')
-        .insert([{
-          email: data.email,
-          name: data.name,
-          password: hashedPassword,
-          first_login: true,
-          role: 'user',
-          registration_code: registrationCode
-        }])
-        .select('id')
-        .single();
-
-      if (pilotError) {
-        console.error('Error creating pilot:', pilotError);
-        return res.status(500).json({ error: 'Error creating pilot account', details: pilotError.message });
-      }
-
-      const { error: updateError } = await supabase
-        .from('submissions')
-        .update({
-          status: 'accept',
-          pilot_id: newPilot.id
-        })
-        .eq('id', id);
-
-      if (updateError) {
-        console.error('Error updating application:', updateError);
-        return res.status(500).json({ error: 'Error updating application', details: updateError.message });
-      }
-
-      const emailContent = `Witaj w CometJet!
-      
-      Twoje konto pilot zostało utworzone.
-      Dane logowania:
-      Email: ${data.email}
-      Tymczasowe hasło: ${tempPassword}
-      
-      Zaloguj się i zmień hasło po pierwszym logowaniu.`;
-
-      try {
-        await sendEmail(data.email, "Witamy w CometJet!", emailContent);
-      } catch (emailErr) {
-        console.error('Email sending failed:', emailErr);
-        return res.status(500).json({ error: 'Application accepted but email sending failed', details: emailErr.message });
-      }
-
-      res.status(200).json({ message: 'Application accepted' });
-
-    } else if (status === "reject") {
-      const { error: updateError } = await supabase
-        .from('submissions')
-        .update({
-          status: 'reject',
-          rejection_reason: req.body.reason || 'Odrzucono przez administratora'
-        })
-        .eq('id', id);
-
-      if (updateError) {
-        console.error('Error updating application:', updateError);
-        return res.status(500).json({ error: 'Error updating application', details: updateError.message });
-      }
-
-      const rejectionMsg = `Twoje zgłoszenie do CometJet zostało odrzucone.`;
-      try {
-        await sendEmail(data.email, "Status zgłoszenia CometJet", rejectionMsg);
-      } catch (emailErr) {
-        console.error('Email sending failed:', emailErr);
-        return res.status(500).json({ error: 'Application rejected but email sending failed', details: emailErr.message });
-      }
-
-      res.status(200).json({ message: 'Application rejected' });
-    } else {
-      return res.status(400).json({ error: 'Invalid status' });
-    }
-  } catch (err) {
-    console.error(`Error processing application ${id}:`, err);
-    res.status(500).json({ error: 'Server error', details: err.message });
-  }
-});
-
 app.get('/api/fleet-stats', async (req, res) => {
   try {
+    // Pobierz wszystkich pilotów i ich przypisania
     const { data: pilots, error } = await supabase
       .from('pilots')
       .select('registrations');
@@ -232,15 +53,23 @@ app.get('/api/fleet-stats', async (req, res) => {
       return res.status(500).json({ error: 'Database error', details: error.message });
     }
 
+    // Zlicz przypisane samoloty dla każdego modelu
     const modelCounts = {};
+    console.log('Model counts:', modelCounts);
+
     pilots.forEach(pilot => {
       if (pilot.registrations && typeof pilot.registrations === 'object') {
         Object.keys(pilot.registrations).forEach(model => {
-          modelCounts[model] = (modelCounts[model] || 0) + 1;
+          if (modelCounts[model]) {
+            modelCounts[model]++;
+          } else {
+            modelCounts[model] = 1;
+          }
         });
       }
     });
 
+    // Uzupełnij modele, które nie są używane (0)
     const allModels = [
       "Airbus A320neo IniBuilds",
       "Airbus A320 Fenix",
@@ -268,8 +97,111 @@ app.get('/api/fleet-stats', async (req, res) => {
   }
 });
 
+// Middleware
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// JWT Middleware
+const verifyToken = async (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1];
+  console.log('Verifying token:', {
+    token: token ? '***' : null,
+    headers: req.headers['authorization'] ? 'Authorization header present' : 'No Authorization header'
+  });
+  if (!token) {
+    console.log('No token provided');
+    return res.status(401).json({ error: 'Brak tokenu, zaloguj się' });
+  }
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    console.log('Token decoded:', { pilotId: decoded.pilotId, role: decoded.role, name: decoded.name });
+    req.user = decoded;
+    next();
+  } catch (err) {
+    console.error('Invalid token:', err.message);
+    return res.status(401).json({ error: 'Nieprawidłowy lub wygasły token', details: err.message });
+  }
+};
+
+const verifyAdmin = (req, res, next) => {
+  if (req.user.role !== 'admin') {
+    console.log('Access denied, not an admin:', { role: req.user.role });
+    return res.status(403).json({ error: 'Brak uprawnień administratora' });
+  }
+  next();
+};
+
+// Aircraft registration mapping
+const aircraftRegistrationMap = {
+  'Airbus A320neo IniBuilds': 'J',
+  'Airbus A320 Fenix': 'F',
+  'Airbus A320 FlyByWire': 'F',
+  'Airbus A321neo IniBuilds': 'O',
+  'Airbus A330neo': 'X',
+  'Airbus A350': 'A',
+  'Airbus A380 FlyByWire': 'V',
+  'Boeing 737': 'N',
+  'Boeing 737 MAX': 'M',
+  'Boeing 787': 'D',
+  'Boeing 777-300ER': 'P',
+  'Embraer E175': 'E'
+};
+
+
+// Generate random 2-letter code for registration
+function generateRandomCode() {
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let code = '';
+  for (let i = 0; i < 2; i++) {
+    code += letters.charAt(Math.floor(Math.random() * letters.length));
+  }
+  return code;
+}
+
+// Email sending function
+async function sendEmail(to, subject, content, isHtml = false) {
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: 'hello.cometjet@gmail.com',
+      pass: 'bmlidtluamybfyal'
+    }
+  });
+
+  const mailOptions = {
+    from: 'hello.cometjet@gmail.com',
+    to,
+    subject,
+    [isHtml ? 'html' : 'text']: content
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Mail sent:', info.response);
+    return { success: true, response: info.response };
+  } catch (err) {
+    console.error('Error sending email:', err);
+    throw err;
+  }
+}
+
+// Generate temporary password
+function generateTempPassword() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let password = '';
+  for (let i = 0; i < 12; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
+
+// Endpoints
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
+  console.log('Login request:', { email, password: '***' });
   try {
     const { data, error } = await supabase
       .from('pilots')
@@ -277,25 +209,28 @@ app.post('/api/login', async (req, res) => {
       .eq('email', email)
       .single();
 
+    console.log('Supabase response:', { data: data ? { id: data.id, first_login: data.first_login, role: data.role } : null, error });
     if (error || !data) {
-      console.error('Login failed: Invalid email', email);
+      console.log('Pilot not found for email:', email);
       return res.status(401).json({ error: 'Nieprawidłowy email lub hasło' });
     }
 
     const isMatch = await bcrypt.compare(password, data.password);
+    console.log('Password match:', { isMatch });
     if (!isMatch) {
-      console.error('Login failed: Invalid password for', email);
       return res.status(401).json({ error: 'Nieprawidłowy email lub hasło' });
     }
 
+    // Generate JWT
     const token = jwt.sign(
       { pilotId: data.id, role: data.role, name: data.name },
       JWT_SECRET,
       { expiresIn: '1h' }
     );
+    console.log('Login successful, pilotId:', data.id, 'role:', data.role, 'token:', '***');
     res.status(200).json({ message: 'Logowanie pomyślne', token, firstLogin: data.first_login, pilotId: data.id, role: data.role, name: data.name });
   } catch (err) {
-    console.error('Login error:', err);
+    console.error('Server error in /api/login:', err);
     res.status(500).json({ error: 'Błąd serwera', details: err.message });
   }
 });
@@ -304,6 +239,7 @@ app.get('/api/pilot/:id', verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     if (req.user.pilotId !== id && req.user.role !== 'admin') {
+      console.log('Access denied to pilot data:', { requestedId: id, userId: req.user.pilotId, role: req.user.role });
       return res.status(403).json({ error: 'Brak uprawnień do tych danych' });
     }
     const { data, error } = await supabase
@@ -314,166 +250,100 @@ app.get('/api/pilot/:id', verifyToken, async (req, res) => {
     if (error) throw error;
     res.json(data);
   } catch (error) {
-    console.error(`Error fetching pilot ${req.params.id}:`, error);
+    console.error('Error fetching pilot:', error);
     res.status(500).json({ error: 'Błąd pobierania danych pilota', details: error.message });
   }
 });
 
 app.post('/api/submit', async (req, res) => {
-  const {
-    name,
-    email,
-    discord,
-    callsign,
-    birth_date,
-    continent,
-    icao,
-    interest_duration,
-    simulator,
-    networks,
-    flight_types,
-    other_airlines,
-    source,
-    aircrafts,
-    experience,
-    reason
-  } = req.body;
-
+  const { name, email, callsign, experience, reason, aircrafts } = req.body;
+  console.log('Received /api/submit:', { name, email, callsign, experience, reason, aircrafts });
   try {
-    const requiredFields = { name, email, callsign, birth_date, continent, experience, reason };
-    for (const [key, value] of Object.entries(requiredFields)) {
-      if (!value) {
-        return res.status(400).json({ error: `Pole ${key} jest wymagane` });
-      }
+    // Ensure aircrafts is an array
+    const aircraftsArray = Array.isArray(aircrafts) ? aircrafts : (typeof aircrafts === 'string' ? aircrafts.split(',').map(s => s.trim()) : []);
+    if (aircraftsArray.length === 0) {
+      return res.status(400).json({ error: 'Nie wybrano żadnych samolotów' });
     }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Nieprawidłowy format emaila' });
-    }
-
-    const birthDate = new Date(birth_date);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    if (age < 13) {
-      return res.status(400).json({ error: 'Musisz mieć co najmniej 13 lat, aby złożyć aplikację' });
-    }
-
-    if (icao && !/^[A-Z]{4}$/.test(icao)) {
-      return res.status(400).json({ error: 'Nieprawidłowy kod ICAO' });
-    }
-
-    const aircraftsArray = Array.isArray(aircrafts)
-      ? aircrafts
-      : typeof aircrafts === 'string'
-        ? aircrafts.split(',').map(s => s.trim())
-        : [];
-    if (aircraftsArray.length === 0 || aircraftsArray.length > 3) {
-      return res.status(400).json({ error: 'Wybierz od 1 do 3 samolotów' });
-    }
-
-    const networksArray = Array.isArray(networks)
-      ? networks
-      : typeof networks === 'string'
-        ? networks.split(',').map(s => s.trim())
-        : [];
-
     const { data, error } = await supabase
       .from('submissions')
       .insert([{
         name,
         email,
-        discord,
         callsign,
-        birth_date,
-        continent,
-        icao,
-        interest_duration,
-        simulator,
-        networks: networksArray,
-        flight_types,
-        other_airlines,
-        source,
-        selected_aircrafts: aircraftsArray,
         experience,
         reason,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        registrations: {}
+        selected_aircrafts: aircraftsArray
       }]);
 
     if (error) {
-      console.error('Error inserting submission:', error);
+      console.error('Supabase error in /api/submit:', error);
       return res.status(500).json({ error: 'Błąd bazy danych', details: error.message });
     }
 
-    try {
-      await sendEmail(email, "Dziękujemy za zgłoszenie!", "Twoje zgłoszenie zostało przyjęte. Odezwiemy się w ciągu 3 dni.");
-    } catch (emailErr) {
-      console.error('Email sending failed for submission:', emailErr);
-      return res.status(500).json({ error: 'Submission successful but email sending failed', details: emailErr.message });
-    }
+    await sendEmail(email, "Dziękujemy za zgłoszenie!", "Twoje zgłoszenie zostało przyjęte. Odezwiemy się w ciągu 3 dni.");
     res.status(200).json({ message: 'Zgłoszenie przesłane pomyślnie' });
   } catch (err) {
-    console.error('Error submitting application:', err);
+    console.error('Server error in /api/submit:', err);
     res.status(500).json({ error: 'Błąd serwera', details: err.message });
   }
 });
 
 app.get('/api/applications', verifyToken, verifyAdmin, async (req, res) => {
   try {
+    console.log('Fetching applications from Supabase...');
     const { data, error } = await supabase
       .from('submissions')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching applications:', error);
+      console.error('Supabase error in /api/applications:', error);
       return res.status(500).json({ error: 'Błąd bazy danych', details: error.message });
     }
+    console.log('Applications fetched:', data.length, 'records');
     res.json(data);
   } catch (err) {
-    console.error('Error in /api/applications:', err);
+    console.error('Server error in /api/applications:', err);
     res.status(500).json({ error: 'Błąd serwera', details: err.message });
   }
 });
 
 app.get('/api/pilots', verifyToken, verifyAdmin, async (req, res) => {
   try {
+    console.log('Fetching pilots from Supabase...');
     const { data, error } = await supabase
       .from('pilots')
       .select('id, name, email, registrations, role, registration_code')
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching pilots:', error);
+      console.error('Supabase error in /api/pilots:', error);
       return res.status(500).json({ error: 'Błąd bazy danych', details: error.message });
     }
+    console.log('Pilots fetched:', data.length, 'records');
     res.json(data);
   } catch (err) {
-    console.error('Error in /api/pilots:', err);
+    console.error('Server error in /api/pilots:', err);
     res.status(500).json({ error: 'Błąd serwera', details: err.message });
   }
 });
 
 app.get('/api/posts', async (req, res) => {
   try {
+    console.log('Fetching posts from Supabase...');
     const { data, error } = await supabase
       .from('posts')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching posts:', error);
+      console.error('Supabase error in /api/posts:', error);
       return res.status(500).json({ error: 'Błąd bazy danych', details: error.message });
     }
+    console.log('Posts fetched:', data.length, 'records');
     res.json(data);
   } catch (err) {
-    console.error('Error in /api/posts:', err);
+    console.error('Server error in /api/posts:', err);
     res.status(500).json({ error: 'Błąd serwera', details: err.message });
   }
 });
@@ -486,62 +356,182 @@ app.get('/admin', verifyToken, verifyAdmin, async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (appError) {
-      console.error('Error fetching applications for admin:', appError);
+      console.error('Supabase error in /admin:', appError);
       return res.status(500).send('Błąd bazy danych');
     }
 
     res.render('admin', { applications: applications || [] });
   } catch (err) {
-    console.error('Error rendering admin page:', err);
+    console.error('Błąd serwera w /admin:', err);
     res.status(500).send('Wewnętrzny błąd serwera');
+  }
+});
+
+app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
+  const { id, action, registrations } = req.body;
+  console.log('Received /api/action request:', { id, action, registrations });
+
+  try {
+    const { data, error } = await supabase.from('submissions').select('*').eq('id', id).single();
+    if (!data || error) {
+      console.error('Błąd pobierania zgłoszenia:', error);
+      return res.status(404).json({ error: 'Zgłoszenie nie znalezione', details: error?.message });
+    }
+
+    if (data.status === 'accept' || data.status === 'reject') {
+      console.log(`Zgłoszenie ${id} już ma status: ${data.status}`);
+      return res.status(400).json({ error: `Zgłoszenie już przetworzone jako ${data.status}` });
+    }
+
+    // Ensure selected_aircrafts is an array
+    let selectedAircrafts = data.selected_aircrafts;
+    if (typeof selectedAircrafts === 'string') {
+      selectedAircrafts = selectedAircrafts.split(',').map(s => s.trim());
+    } else if (!Array.isArray(selectedAircrafts)) {
+      selectedAircrafts = [];
+    }
+
+    if (action === "accept") {
+      // Generate temporary password
+      const tempPassword = generateTempPassword();
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+      // Generate registrations if not provided
+      let assignedRegistrations = registrations || {};
+      if (!registrations || Object.keys(registrations).length === 0) {
+        assignedRegistrations = {};
+        if (selectedAircrafts.length === 0) {
+          console.warn('No selected aircrafts for registration generation:', { id });
+          return res.status(400).json({ error: 'Nie wybrano samolotów do rejestracji' });
+        }
+        selectedAircrafts.forEach(aircraft => {
+          const letter = aircraftRegistrationMap[aircraft];
+          if (letter) {
+            const code = generateRandomCode();
+            assignedRegistrations[aircraft] = `SP-${code[0]}${letter}${code[1]}`;
+          }
+        });
+      }
+
+      // Validate registrations
+      for (const [aircraft, reg] of Object.entries(assignedRegistrations)) {
+        if (!reg.match(/^SP-[A-Z]{3}$/)) {
+          console.error('Invalid registration format:', { aircraft, reg });
+          return res.status(400).json({ error: `Nieprawidłowy format rejestracji dla ${aircraft}: ${reg}. Użyj formatu SP-XYZ.` });
+        }
+      }
+
+      // Create pilot account with default role 'user'
+      console.log('Creating pilot account:', { email: data.email, name: data.name, registrations: assignedRegistrations, role: 'user' });
+      const { data: newPilot, error: pilotError } = await supabase
+        .from('pilots')
+        .insert([{
+          email: data.email,
+          name: data.name,
+          password: hashedPassword,
+          registrations: assignedRegistrations,
+          first_login: true,
+          role: 'user',
+          created_at: new Date().toISOString(),
+          registration_code: generateRandomCode()
+        }])
+        .select('id')
+        .single();
+
+      if (pilotError) {
+        console.error('Błąd tworzenia konta pilota:', pilotError);
+        return res.status(500).json({ error: 'Błąd tworzenia konta pilota', details: pilotError.message });
+      }
+
+      console.log('New pilot created with id:', newPilot.id);
+      // Update submission with registrations and status
+      console.log('Updating submission:', { id, status: action, registrations: assignedRegistrations });
+      const { error: updateError } = await supabase
+        .from('submissions')
+        .update({
+          status: action,
+          registrations: assignedRegistrations
+        })
+        .eq('id', id);
+
+      if (updateError) {
+        console.error('Błąd aktualizacji zgłoszenia:', updateError);
+        return res.status(500).json({ error: 'Błąd aktualizacji zgłoszenia', details: updateError.message });
+      }
+
+      try {
+        const emailContent = await ejs.renderFile(
+          path.join(__dirname, 'views', 'email-template.ejs'),
+          {
+            name: data.name,
+            tempPassword,
+            loginUrl: 'https://cometjetdb2.onrender.com/login.html'
+          }
+        );
+        await sendEmail(data.email, "Witaj w CometJet!", emailContent, true);
+      } catch (emailErr) {
+        console.error('Błąd wysyłania emaila:', emailErr);
+        return res.status(500).json({ error: 'Błąd wysyłania emaila', details: emailErr.message });
+      }
+    } else {
+      const rejectionMessage = `
+# CometJet - Recruitment Outcome Notification
+
+Dear ${data.name},
+
+We regret to inform you that your application for the pilot position at CometJet has not been successful. We sincerely appreciate your interest in our airline and the time you invested in submitting your application.
+
+Your passion for aviation is commendable, and we are confident it will find a place in other professional opportunities. We wish you the best of luck in your future career endeavors and in pursuing your aviation aspirations.
+
+Should you have any questions, please feel free to reach out via our Discord server, where we are happy to provide further information.
+
+Best regards,  
+KayJayKay and Aviaced  
+CometJet VA CEOs
+      `;
+      try {
+        await sendEmail(data.email, "CometJet - Wynik rekrutacji", rejectionMessage);
+      } catch (emailErr) {
+        console.error('Błąd wysyłania emaila:', emailErr);
+        return res.status(500).json({ error: 'Błąd wysyłania emaila', details: emailErr.message });
+      }
+
+      const { error: updateError } = await supabase
+        .from('submissions')
+        .update({ status: action })
+        .eq('id', id);
+
+      if (updateError) {
+        console.error('Błąd aktualizacji zgłoszenia:', updateError);
+        return res.status(500).json({ error: 'Błąd aktualizacji zgłoszenia', details: updateError.message });
+      }
+    }
+
+    res.status(200).json({ message: 'Akcja wykonana pomyślnie' });
+  } catch (err) {
+    console.error('Błąd w /api/action:', err);
+    res.status(500).json({ error: 'Błąd przetwarzania akcji', details: err.message });
   }
 });
 
 app.post('/api/update-pilot', verifyToken, verifyAdmin, async (req, res) => {
   try {
-    const {
-      id,
-      name,
-      email,
-      role,
-      registration_code,
-      country,
-      preferred_airport,
-      preferred_aircraft,
-      experience,
-      birthdate,
-      about,
-      avatar
-    } = req.body;
-
-    const updateData = {
-      name,
-      email,
-      role,
-      registration_code,
-      country,
-      preferred_airport,
-      preferred_aircraft,
-      experience,
-      birthdate,
-      about,
-      avatar
-    };
-
+    const { id, name, email, registrations, role, registration_code } = req.body;
+    console.log('Received /api/update-pilot request:', { id, name, email, registrations, role, registration_code });
     const { data, error } = await supabase
       .from('pilots')
-      .update(updateData)
+      .update({ name, email, registrations, role, registration_code })
       .eq('id', id)
       .select()
       .single();
-
     if (error) {
-      console.error('Error updating pilot:', error);
+      console.error('Supabase error in /api/update-pilot:', error);
       throw error;
     }
+    console.log('Pilot updated successfully:', data);
     res.json(data);
   } catch (error) {
-    console.error('Error in /api/update-pilot:', error);
+    console.error('Error updating pilot:', error);
     res.status(500).json({ error: 'Błąd aktualizacji pilota', details: error.message });
   }
 });
@@ -550,60 +540,85 @@ app.post('/api/change-password', verifyToken, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const pilotId = req.user.pilotId;
+    console.log('Change password request:', { pilotId, currentPassword: '***', newPassword: '***' });
 
+    // Sprawdzenie, czy podano wymagane dane
     if (!currentPassword || !newPassword) {
+      console.log('Missing required fields:', { currentPassword: !!currentPassword, newPassword: !!newPassword });
       return res.status(400).json({ error: 'Aktualne i nowe hasło są wymagane' });
     }
 
+    // Walidacja długości nowego hasła
     if (newPassword.length < 8) {
+      console.log('New password too short:', { length: newPassword.length });
       return res.status(400).json({ error: 'Nowe hasło musi mieć co najmniej 8 znaków' });
     }
 
+    // Pobierz dane pilota
     const { data: pilot, error: fetchError } = await supabase
       .from('pilots')
       .select('id, email, password, first_login')
       .eq('id', pilotId)
       .single();
+    console.log('Supabase fetch pilot:', {
+      pilotId,
+      pilot: pilot ? { id: pilot.id, email: pilot.email, first_login: pilot.first_login } : null,
+      fetchError
+    });
 
     if (fetchError || !pilot) {
-      console.error('Error fetching pilot for password change:', fetchError);
+      console.log('Pilot not found for id:', pilotId);
       return res.status(404).json({ error: 'Pilot nie znaleziony', details: fetchError?.message });
     }
 
+    // Sprawdź aktualne hasło (tylko jeśli first_login jest false)
     if (!pilot.first_login) {
       const validPassword = await bcrypt.compare(currentPassword, pilot.password);
+      console.log('Password validation:', { validPassword });
       if (!validPassword) {
+        console.log('Invalid current password for pilotId:', pilotId);
         return res.status(401).json({ error: 'Nieprawidłowe aktualne hasło' });
       }
     }
 
+    // Zahashuj nowe hasło
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    console.log('New password hashed for pilotId:', pilotId);
+
+    // Zaktualizuj hasło i ustaw first_login na false
     const { data: updatedPilot, error: updateError } = await supabase
       .from('pilots')
       .update({ password: hashedNewPassword, first_login: false })
       .eq('id', pilotId)
       .select('id, email, first_login')
       .single();
+    console.log('Supabase update pilot:', {
+      updatedPilot: updatedPilot ? { id: updatedPilot.id, email: updatedPilot.email, first_login: updatedPilot.first_login } : null,
+      updateError
+    });
 
     if (updateError) {
-      console.error('Error updating password:', updateError);
+      console.error('Błąd aktualizacji hasła:', updateError);
       return res.status(500).json({ error: 'Błąd aktualizacji hasła', details: updateError.message });
     }
 
+    // Wyślij email z potwierdzeniem
     try {
-      await sendEmail(
+      const emailResult = await sendEmail(
         pilot.email,
         'Potwierdzenie zmiany hasła - CometJet',
-        `Twoje hasło w systemie CometJet zostało pomyślnie zmienione.`,
+        `Twoje hasło w systemie CometJet zostało pomyślnie zmienione. Jeśli to nie Ty dokonałeś zmiany, skontaktuj się z administratorem.`,
         false
       );
+      console.log('Password change email sent:', { email: pilot.email, result: emailResult });
     } catch (emailErr) {
-      console.error('Email sending failed for password change:', emailErr);
+      console.error('Błąd wysyłania emaila potwierdzającego:', emailErr);
+      // Nie przerywamy odpowiedzi, bo hasło zostało zmienione
     }
 
     return res.status(200).json({ message: 'Hasło zmienione pomyślnie', updatedPilot: { id: updatedPilot.id, first_login: updatedPilot.first_login } });
   } catch (error) {
-    console.error('Error in /api/change-password:', error);
+    console.error('Błąd zmiany hasła:', error);
     return res.status(500).json({ error: 'Błąd serwera', details: error.message });
   }
 });
@@ -618,12 +633,11 @@ app.get('/api/posts/:id', async (req, res) => {
       .single();
 
     if (error || !data) {
-      console.error('Post not found:', id, error);
       return res.status(404).json({ error: 'Post nie znaleziony' });
     }
     res.json(data);
   } catch (err) {
-    console.error('Error in /api/posts/:id:', err);
+    console.error('Server error in /api/posts/:id:', err);
     res.status(500).json({ error: 'Błąd serwera', details: err.message });
   }
 });
@@ -665,7 +679,7 @@ app.post('/api/posts', verifyToken, verifyAdmin, async (req, res) => {
     }
     res.status(200).json(data);
   } catch (err) {
-    console.error('Error in /api/posts:', err);
+    console.error('Błąd bazy danych w /api/posts:', err);
     res.status(500).json({ error: 'Błąd bazy danych', details: err.message });
   }
 });
@@ -681,7 +695,7 @@ app.delete('/api/posts/:id', verifyToken, verifyAdmin, async (req, res) => {
     if (error) throw error;
     res.status(200).json({ message: 'Post usunięty' });
   } catch (err) {
-    console.error('Error deleting post:', err);
+    console.error('Błąd bazy danych w /api/posts/:id:', err);
     res.status(500).json({ error: 'Błąd bazy danych', details: err.message });
   }
 });
@@ -692,7 +706,7 @@ app.post('/api/send-email', verifyToken, verifyAdmin, async (req, res) => {
     await sendEmail(to, subject, message);
     res.status(200).json({ message: 'Email wysłany pomyślnie' });
   } catch (err) {
-    console.error('Error in /api/send-email:', err);
+    console.error('Błąd wysyłania emaila:', err);
     res.status(500).json({ error: 'Błąd wysyłania emaila', details: err.message });
   }
 });
@@ -709,74 +723,47 @@ app.get('/panel-admin', verifyToken, verifyAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'panel-admin.html'));
 });
 
-app.get('/api/keepalive', (req, res) => {
-  res.send('OK');
-});
-
-app.get('/api/applications/:id', verifyToken, verifyAdmin, async (req, res) => {
-  const { id } = req.params;
+// Debug endpoint
+app.get('/debug', async (req, res) => {
+  const fs = require('fs');
+  const filePath = path.join(__dirname, 'views', 'admin.ejs');
   try {
     const { data, error } = await supabase
       .from('submissions')
       .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error || !data) {
-      console.error('Application not found:', id, error);
-      return res.status(404).json({ error: 'Zgłoszenie nie znalezione' });
+      .order('created_at', { ascending: false });
+    if (error) {
+      res.send('Błąd Supabase: ' + error.message);
+    } else {
+      res.send(`Plik admin.ejs istnieje: ${fs.existsSync(filePath) ? 'Tak' : 'Nie'}<br>Dane z Supabase: ${JSON.stringify(data)}`);
     }
-    res.json(data);
   } catch (err) {
-    console.error('Error in /api/applications/:id:', err);
-    res.status(500).json({ error: 'Błąd serwera', details: err.message });
+    res.send('Błąd serwera: ' + err.message);
   }
 });
 
-app.post('/api/update-application-status/:id', verifyToken, verifyAdmin, async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
-
-  try {
-    const { error } = await supabase
-      .from('submissions')
-      .update({ status })
-      .eq('id', id);
-
-    if (error) throw error;
-    res.status(200).json({ message: 'Status zgłoszenia zaktualizowany' });
-  } catch (error) {
-    console.error('Error updating application status:', error);
-    res.status(500).json({ error: 'Błąd aktualizacji statusu', details: error.message });
-  }
-});
-
-app.delete('/api/pilots/:id', verifyToken, verifyAdmin, async (req, res) => {
-  const { id } = req.params;
-  try {
-    const { data: pilot, error: fetchError } = await supabase
-      .from('pilots')
-      .select('id')
-      .eq('id', id)
-      .single();
-
-    if (fetchError || !pilot) {
-      console.error('Pilot not found:', id, fetchError);
-      return res.status(404).json({ error: 'Pilot not found' });
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    const token = req.headers['authorization']?.split(' ')[1];
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (decoded.exp * 1000 < Date.now()) {
+          return res.status(401).json({ error: 'Sesja wygasła' });
+        }
+      } catch (e) {
+        // Ignore invalid tokens for non-auth routes
+      }
     }
-
-    const { error } = await supabase
-      .from('pilots')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-
-    res.status(200).json({ message: 'Pilot usunięty pomyślnie' });
-  } catch (err) {
-    console.error('Error deleting pilot:', err);
-    res.status(500).json({ error: 'Błąd usuwania pilota', details: err.message });
   }
+  next();
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log(`Serwer działa na http://0.0.0.0:${PORT}`));
+app.get('/api/keepalive', (req, res) => {
+  res.send('OK');
+});
+
+
+
+
+app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
