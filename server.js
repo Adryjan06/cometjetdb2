@@ -802,5 +802,21 @@ app.post('/api/reject-application/:id', verifyToken, verifyAdmin, async (req, re
   }
 });
 
+app.delete('/api/pilots/:id', verifyToken, verifyAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { error } = await supabase
+      .from('pilots')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    res.status(200).json({ message: 'Pilot usunięty pomyślnie' });
+  } catch (err) {
+    res.status(500).json({ error: 'Błąd usuwania pilota', details: err.message });
+  }
+});
+
 
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
