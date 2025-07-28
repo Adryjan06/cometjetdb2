@@ -391,121 +391,86 @@ app.get('/admin', verifyToken, verifyAdmin, async (req, res) => {
 });
 
 app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
-  const { id, action, registrations } = req.body;
+  const { id, action } = req.body;
 
   try {
-    const { data, error } = await supabase.from('submissions').select('*').eq('id', id).single();
+    // Pobierz aplikację
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('id', id)
+      .single();
+
     if (!data || error) {
-      return res.status(404).json({ error: 'Zgłoszenie nie znalezione', details: error?.message });
-    }
-
-    if (data.status === 'accept' || data.status === 'reject') {
-      return res.status(400).json({ error: `Zgłoszenie już przetworzone jako ${data.status}` });
-    }
-
-    // Ensure selected_aircrafts is an array
-    let selectedAircrafts = data.selected_aircrafts;
-    if (typeof selectedAircrafts === 'string') {
-      selectedAircrafts = selectedAircrafts.split(',').map(s => s.trim());
-    } else if (!Array.isArray(selectedAircrafts)) {
-      selectedAircrafts = [];
+      return res.status(404).json({ error: 'Application not found' });
     }
 
     if (action === "accept") {
-      // Generate temporary password
+      // Generuj tymczasowe hasło
       const tempPassword = generateTempPassword();
       const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
-      // Generate registrations if not provided
-      let assignedRegistrations = registrations || {};
-      if (!registrations || Object.keys(registrations).length === 0) {
-        assignedRegistrations = {};
-        if (selectedAircrafts.length === 0) {
-          return res.status(400).json({ error: 'Nie wybrano samolotów do rejestracji' });
-        }
-        selectedAircrafts.forEach(aircraft => {
-          const letter = aircraftRegistrationMap[aircraft];
-          if (letter) {
-            const code = generateRandomCode();
-            assignedRegistrations[aircraft] = `SP-${code[0]}${letter}${code[1]}`;
-          }
-        });
-      }
+      // Generuj kod rejestracji
+      const registrationCode = generateRandomCode();
 
-      // Validate registrations
-      for (const [aircraft, reg] of Object.entries(assignedRegistrations)) {
-        if (!reg.match(/^SP-[A-Z]{3}$/)) {
-          return res.status(400).json({ error: `Nieprawidłowy format rejestracji dla ${aircraft}: ${reg}. Użyj formatu SP-XYZ.` });
-        }
-      }
-
-      // Create pilot account with default role 'user'
+      // Twórz konto pilota
       const { data: newPilot, error: pilotError } = await supabase
         .from('pilots')
         .insert([{
           email: data.email,
           name: data.name,
           password: hashedPassword,
-          registrations: assignedRegistrations,
           first_login: true,
           role: 'user',
-          created_at: new Date().toISOString(),
-          registration_code: generateRandomCode()
+          registration_code: registrationCode
         }])
         .select('id')
         .single();
 
       if (pilotError) {
-        return res.status(500).json({ error: 'Błąd tworzenia konta pilota', details: pilotError.message });
+        return res.status(500).json({ error: 'Error creating pilot account' });
       }
 
-      // Update submission with registrations and status
+      // Aktualizuj status aplikacji
       const { error: updateError } = await supabase
         .from('submissions')
-        .update({
-          status: action,
-          registrations: assignedRegistrations
+        .update({ 
+          status: 'accept',
+          pilot_id: newPilot.id
         })
         .eq('id', id);
 
       if (updateError) {
-        return res.status(500).json({ error: 'Błąd aktualizacji zgłoszenia', details: updateError.message });
+        return res.status(500).json({ error: 'Error updating application' });
       }
 
-      try {
-        const emailContent = await ejs.renderFile(
-          path.join(__dirname, 'views', 'email-template.ejs'),
-          {
-            name: data.name,
-            tempPassword,
-            loginUrl: 'https://cometjetdb2.onrender.com/login.html'
-          }
-        );
-        await sendEmail(data.email, "Witaj w CometJet!", emailContent, true);
-      } catch (emailErr) {
-        return res.status(500).json({ error: 'Błąd wysyłania emaila', details: emailErr.message });
-      }
-    } else {
-      const rejectionMessage = `CometJet - Recruitment Outcome Notification\n\nDear ${data.name},\n\nWe regret to inform you that your application has not been successful.\n\nBest regards,\nCometJet Team`;
-      try {
-        await sendEmail(data.email, "CometJet - Wynik rekrutacji", rejectionMessage);
-      } catch (emailErr) {
-        return res.status(500).json({ error: 'Błąd wysyłania emaila', details: emailErr.message });
-      }
+      // Wyślij email powitalny
+      const emailContent = await ejs.renderFile(
+        path.join(__dirname, 'views', 'welcome-email.ejs'),
+        { name: data.name, tempPassword }
+      );
+      
+      await sendEmail(data.email, "Welcome to CometJet!", emailContent, true);
 
+    } else if (action === "reject") {
+      // Aktualizuj status aplikacji
       const { error: updateError } = await supabase
         .from('submissions')
-        .update({ status: action })
+        .update({ status: 'reject' })
         .eq('id', id);
 
       if (updateError) {
-        return res.status(500).json({ error: 'Błąd aktualizacji zgłoszenia', details: updateError.message });
+        return res.status(500).json({ error: 'Error updating application' });
       }
+
+      // Wyślij email z odmową
+      const rejectionMsg = `Your application has been reviewed but we cannot offer you a position at this time.`;
+      await sendEmail(data.email, "CometJet Application Status", rejectionMsg);
     }
 
-    res.status(200).json({ message: 'Akcja wykonana pomyślnie' });
+    res.status(200).json({ message: 'Action completed successfully' });
   } catch (err) {
-    res.status(500).json({ error: 'Błąd przetwarzania akcji', details: err.message });
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
 
