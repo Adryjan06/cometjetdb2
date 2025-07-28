@@ -40,6 +40,62 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+app.get('/api/fleet-stats', async (req, res) => {
+  try {
+    // Pobierz wszystkich pilotów i ich przypisania
+    const { data: pilots, error } = await supabase
+      .from('pilots')
+      .select('registrations');
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({ error: 'Database error', details: error.message });
+    }
+
+    // Zlicz przypisane samoloty dla każdego modelu
+    const modelCounts = {};
+    console.log('Model counts:', modelCounts);
+
+    pilots.forEach(pilot => {
+      if (pilot.registrations && typeof pilot.registrations === 'object') {
+        Object.keys(pilot.registrations).forEach(model => {
+          if (modelCounts[model]) {
+            modelCounts[model]++;
+          } else {
+            modelCounts[model] = 1;
+          }
+        });
+      }
+    });
+
+    // Uzupełnij modele, które nie są używane (0)
+    const allModels = [
+      "Airbus A320neo IniBuilds",
+      "Airbus A320 Fenix",
+      "Airbus A321neo IniBuilds",
+      "Airbus A330neo",
+      "Airbus A350",
+      "Airbus A380 FlyByWire",
+      "Boeing 737-800",
+      "Boeing 737 MAX",
+      "Boeing 787",
+      "Boeing 777-300ER",
+      "Embraer E175"
+    ];
+
+    allModels.forEach(model => {
+      if (!modelCounts.hasOwnProperty(model)) {
+        modelCounts[model] = 0;
+      }
+    });
+
+    res.json(modelCounts);
+  } catch (err) {
+    console.error('Error fetching fleet stats:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+});
+
 // Middleware
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -197,88 +253,124 @@ app.get('/api/pilot/:id', verifyToken, async (req, res) => {
   }
 });
 
-app.get('/api/flight-history/:pilotId', verifyToken, async (req, res) => {
-  try {
-    const { pilotId } = req.params;
-    if (req.user.pilotId !== pilotId && req.user.role !== 'admin') {
-      console.log('Access denied to flight history:', { requestedId: pilotId, userId: req.user.pilotId, role: req.user.role });
-      return res.status(403).json({ error: 'Brak uprawnień do tych danych' });
-    }
-    const { data, error } = await supabase
-      .from('flight_plans')
-      .select('id, flightNumber, departure, arrival, route, aircraft, fuel, passengers, cargo, created_at')
-      .eq('pilotId', pilotId)
-      .order('created_at', { ascending: false });
-    if (error) {
-      console.error('Supabase error in /api/flight-history:', error);
-      return res.status(500).json({ error: 'Błąd bazy danych', details: error.message });
-    }
-    console.log('Flight history fetched:', { pilotId, count: data.length });
-    res.json(data);
-  } catch (err) {
-    console.error('Server error in /api/flight-history:', err);
-    res.status(500).json({ error: 'Błąd serwera', details: err.message });
-  }
-});
-
-app.post('/api/save-flight', verifyToken, async (req, res) => {
-  const { pilotId, flightNumber, departure, arrival, route, aircraft, fuel, passengers, cargo } = req.body;
-  console.log('Received /api/save-flight request:', { pilotId, flightNumber, departure, arrival, route, aircraft, fuel, passengers, cargo });
-  try {
-    if (!pilotId || !flightNumber || !departure || !arrival || !aircraft) {
-      console.log('Missing required fields:', { pilotId, flightNumber, departure, arrival, aircraft });
-      return res.status(400).json({ error: 'Wymagane pola: pilotId, flightNumber, departure, arrival, aircraft' });
-    }
-    if (req.user.pilotId !== pilotId && req.user.role !== 'admin') {
-      console.log('Access denied to save flight:', { requestedId: pilotId, userId: req.user.pilotId, role: req.user.role });
-      return res.status(403).json({ error: 'Brak uprawnień do zapisu planu lotu' });
-    }
-    const { data, error } = await supabase
-      .from('flight_plans')
-      .insert([{
-        pilotId,
-        flightNumber,
-        departure,
-        arrival,
-        route,
-        aircraft,
-        fuel,
-        passengers,
-        cargo,
-        created_at: new Date().toISOString()
-      }])
-      .select()
-      .single();
-    if (error) {
-      console.error('Supabase error in /api/save-flight:', error);
-      return res.status(500).json({ error: 'Błąd bazy danych', details: error.message });
-    }
-    console.log('Flight plan saved:', data);
-    res.status(200).json({ message: 'Plan lotu zapisany pomyślnie', flight: data });
-  } catch (err) {
-    console.error('Server error in /api/save-flight:', err);
-    res.status(500).json({ error: 'Błąd serwera', details: err.message });
-  }
-});
-
 app.post('/api/submit', async (req, res) => {
-  const { name, email, callsign, experience, reason, aircrafts } = req.body;
-  console.log('Received /api/submit:', { name, email, callsign, experience, reason, aircrafts });
+  const {
+    name,
+    email,
+    discord,
+    newsky: callsign,
+    birth_date,
+    continent,
+    icao,
+    interest_duration,
+    simulator,
+    networks,
+    flight_types,
+    other_airlines,
+    source,
+    aircrafts,
+    experience,
+    reason
+  } = req.body;
+
+  console.log('Received /api/submit:', {
+    name,
+    email,
+    discord,
+    callsign,
+    birth_date,
+    continent,
+    icao,
+    interest_duration,
+    simulator,
+    networks,
+    flight_types,
+    other_airlines,
+    source,
+    aircrafts,
+    experience,
+    reason
+  });
+
   try {
-    // Ensure aircrafts is an array
-    const aircraftsArray = Array.isArray(aircrafts) ? aircrafts : (typeof aircrafts === 'string' ? aircrafts.split(',').map(s => s.trim()) : []);
-    if (aircraftsArray.length === 0) {
-      return res.status(400).json({ error: 'Nie wybrano żadnych samolotów' });
+    // Validate required fields
+    const requiredFields = { name, email, callsign, birth_date, continent, experience, reason };
+    for (const [key, value] of Object.entries(requiredFields)) {
+      if (!value) {
+        return res.status(400).json({ error: `Pole ${key} jest wymagane` });
+      }
     }
+
+    // Ensure email is valid
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Nieprawidłowy format emaila' });
+    }
+
+    // Validate age (minimum 13 years)
+    const birthDate = new Date(birth_date);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    if (age < 13) {
+      return res.status(400).json({ error: 'Musisz mieć co najmniej 13 lat, aby złożyć aplikację' });
+    }
+
+    // Validate ICAO code
+    if (icao && !/^[A-Z]{4}$/.test(icao)) {
+      return res.status(400).json({ error: 'Nieprawidłowy kod ICAO' });
+    }
+
+    // Ensure aircrafts is an array
+    const aircraftsArray = Array.isArray(aircrafts)
+      ? aircrafts
+      : typeof aircrafts === 'string'
+        ? aircrafts.split(',').map(s => s.trim())
+        : [];
+    if (aircraftsArray.length === 0 || aircraftsArray.length > 3) {
+      return res.status(400).json({ error: 'Wybierz od 1 do 3 samolotów' });
+    }
+
+    // Ensure networks is an array
+    const networksArray = Array.isArray(networks)
+      ? networks
+      : typeof networks === 'string'
+        ? networks.split(',').map(s => s.trim())
+        : [];
+
+    // Ensure flight_types is an array
+    const flightTypesArray = Array.isArray(flight_types)
+      ? flight_types
+      : typeof flight_types === 'string'
+        ? flight_types.split(',').map(s => s.trim())
+        : [];
+
+    // Insert into submissions table
     const { data, error } = await supabase
       .from('submissions')
       .insert([{
         name,
         email,
+        discord,
         callsign,
+        birth_date,
+        continent,
+        icao,
+        interest_duration,
+        simulator,
+        networks: networksArray,
+        flight_types: flightTypesArray,
+        other_airlines,
+        source,
+        selected_aircrafts: aircraftsArray,
         experience,
         reason,
-        selected_aircrafts: aircraftsArray
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        registrations: {}
       }]);
 
     if (error) {
@@ -745,62 +837,6 @@ app.get('/debug', async (req, res) => {
     }
   } catch (err) {
     res.send('Błąd serwera: ' + err.message);
-  }
-});
-
-app.get('/api/fleet-stats', async (req, res) => {
-  try {
-    // Pobierz wszystkich pilotów i ich przypisania
-    const { data: pilots, error } = await supabase
-      .from('pilots')
-      .select('registrations');
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return res.status(500).json({ error: 'Database error', details: error.message });
-    }
-
-    // Zlicz przypisane samoloty dla każdego modelu
-    const modelCounts = {};
-    console.log('Model counts:', modelCounts);
-
-    pilots.forEach(pilot => {
-      if (pilot.registrations && typeof pilot.registrations === 'object') {
-        Object.keys(pilot.registrations).forEach(model => {
-          if (modelCounts[model]) {
-            modelCounts[model]++;
-          } else {
-            modelCounts[model] = 1;
-          }
-        });
-      }
-    });
-
-    // Uzupełnij modele, które nie są używane (0)
-    const allModels = [
-      "Airbus A320neo IniBuilds",
-      "Airbus A320 Fenix",
-      "Airbus A321neo IniBuilds",
-      "Airbus A330neo",
-      "Airbus A350",
-      "Airbus A380 FlyByWire",
-      "Boeing 737-800",
-      "Boeing 737 MAX",
-      "Boeing 787",
-      "Boeing 777-300ER",
-      "Embraer E175"
-    ];
-
-    allModels.forEach(model => {
-      if (!modelCounts.hasOwnProperty(model)) {
-        modelCounts[model] = 0;
-      }
-    });
-
-    res.json(modelCounts);
-  } catch (err) {
-    console.error('Error fetching fleet stats:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
 
