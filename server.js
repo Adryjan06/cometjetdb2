@@ -22,6 +22,7 @@ app.use(bodyParser.json());
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
+
 app.use(cors({
   origin: function (origin, callback) {
     const allowedOrigins = [
@@ -193,7 +194,7 @@ app.put('/api/applications/:id/status', verifyToken, verifyAdmin, async (req, re
         .from('submissions')
         .update({
           status: 'reject',
-          rejection_reason: 'Odrzucono przez administratora'
+          rejection_reason: req.body.reason || 'Odrzucono przez administratora'
         })
         .eq('id', id);
 
