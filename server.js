@@ -136,16 +136,6 @@ const aircraftRegistrationMap = {
   'Embraer E175': 'E'
 };
 
-// Generate random 2-letter code for registration
-function generateRandomCode() {
-  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  let code = '';
-  for (let i = 0; i < 2; i++) {
-    code += letters.charAt(Math.floor(Math.random() * letters.length));
-  }
-  return code;
-}
-
 // Email sending function
 async function sendEmail(to, subject, content, isHtml = false) {
   const transporter = nodemailer.createTransport({
@@ -169,16 +159,6 @@ async function sendEmail(to, subject, content, isHtml = false) {
   } catch (err) {
     throw err;
   }
-}
-
-// Generate temporary password
-function generateTempPassword() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let password = '';
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
 }
 
 // Endpoints
@@ -400,11 +380,12 @@ app.get('/admin', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
+// Fixed application processing endpoint
 app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
   const { id, action } = req.body;
 
   try {
-    // Pobierz aplikację
+    // Get application
     const { data, error } = await supabase
       .from('submissions')
       .select('*')
@@ -416,11 +397,12 @@ app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
     }
 
     if (action === "accept") {
-      // Generuj tymczasowe hasło
+      // Generate registration code and temp password
+      const registrationCode = generateRandomCode();
       const tempPassword = generateTempPassword();
       const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
-      // Twórz konto pilota
+      // Create pilot account
       const { data: newPilot, error: pilotError } = await supabase
         .from('pilots')
         .insert([{
@@ -435,10 +417,11 @@ app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
         .single();
 
       if (pilotError) {
+        console.error('Error creating pilot:', pilotError);
         return res.status(500).json({ error: 'Error creating pilot account' });
       }
 
-      // Aktualizuj status aplikacji
+      // Update application status
       const { error: updateError } = await supabase
         .from('submissions')
         .update({
@@ -451,45 +434,85 @@ app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
         return res.status(500).json({ error: 'Error updating application' });
       }
 
-      // Wyślij email powitalny
-      const emailContent = await ejs.renderFile(
-        path.join(__dirname, 'views', 'welcome-email.ejs'),
-        { name: data.name, tempPassword }
-      );
+      // Send welcome email
+      const emailContent = `Witaj w CometJet!
+      
+      Twoje konto pilot zostało utworzone.
+      Dane logowania:
+      Email: ${data.email}
+      Tymczasowe hasło: ${tempPassword}
+      
+      Zaloguj się i zmień hasło po pierwszym logowaniu.`;
+      
+      await sendEmail(data.email, "Witamy w CometJet!", emailContent);
 
-      await sendEmail(data.email, "Welcome to CometJet!", emailContent, true);
-
+      res.status(200).json({ message: 'Application accepted' });
+      
     } else if (action === "reject") {
-      // Aktualizuj status aplikacji
+      // Update application status
       const { error: updateError } = await supabase
         .from('submissions')
-        .update({ status: 'reject' })
+        .update({ 
+          status: 'reject',
+          rejection_reason: 'Odrzucono przez administratora'
+        })
         .eq('id', id);
 
       if (updateError) {
         return res.status(500).json({ error: 'Error updating application' });
       }
 
-      // Wyślij email z odmową
-      const rejectionMsg = `Your application has been reviewed but we cannot offer you a position at this time.`;
-      await sendEmail(data.email, "CometJet Application Status", rejectionMsg);
-    }
+      // Send rejection email
+      const rejectionMsg = `Twoje zgłoszenie do CometJet zostało odrzucone.`;
+      await sendEmail(data.email, "Status zgłoszenia CometJet", rejectionMsg);
 
-    res.status(200).json({ message: 'Action completed successfully' });
+      res.status(200).json({ message: 'Application rejected' });
+    }
   } catch (err) {
+    console.error('Error processing application:', err);
     res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
 
+// Fixed pilot update endpoint
 app.post('/api/update-pilot', verifyToken, verifyAdmin, async (req, res) => {
   try {
-    const { id, name, email, registrations, role, registration_code } = req.body;
+    const { 
+      id, 
+      name, 
+      email, 
+      role, 
+      registration_code,
+      country,
+      preferred_airport,
+      preferred_aircraft,
+      experience,
+      birthdate,
+      about,
+      avatar
+    } = req.body;
+    
+    const updateData = {
+      name,
+      email,
+      role,
+      registration_code,
+      country,
+      preferred_airport,
+      preferred_aircraft,
+      experience,
+      birthdate,
+      about,
+      avatar
+    };
+
     const { data, error } = await supabase
       .from('pilots')
-      .update({ name, email, registrations, role, registration_code })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
+      
     if (error) {
       throw error;
     }
@@ -655,6 +678,7 @@ app.get('/panel-admin', verifyToken, verifyAdmin, (req, res) => {
 app.get('/api/keepalive', (req, res) => {
   res.send('OK');
 });
+
 app.get('/api/applications/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { id } = req.params;
   try {
@@ -670,26 +694,6 @@ app.get('/api/applications/:id', verifyToken, verifyAdmin, async (req, res) => {
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: 'Błąd serwera', details: err.message });
-  }
-});
-
-
-
-app.get('/api/applications/:id', verifyToken, verifyAdmin, async (req, res) => {
-  const { id } = req.params;
-  try {
-    const { data, error } = await supabase
-      .from('submissions')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error || !data) {
-      return res.status(404).json({ error: 'Application not found' });
-    }
-    res.json(data);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
 
@@ -710,101 +714,22 @@ app.post('/api/update-application-status/:id', verifyToken, verifyAdmin, async (
   }
 });
 
-// Akceptacja zgłoszenia i tworzenie konta pilota
-app.post('/api/accept-application/:id', verifyToken, verifyAdmin, async (req, res) => {
-  const { id } = req.params;
-  try {
-    // Pobierz aplikację
-    const { data: application, error: appError } = await supabase
-      .from('submissions')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (appError || !application) {
-      return res.status(404).json({ error: 'Application not found' });
-    }
-
-    // Generuj kod rejestracji
-    const registrationCode = generateRandomCode();
-
-    // Stwórz konto pilota
-    const { data: pilot, error: pilotError } = await supabase
-      .from('pilots')
-      .insert([{
-        email: application.email,
-        name: application.name,
-        password: await bcrypt.hash(generateTempPassword(), 10),
-        first_login: true,
-        role: 'user',
-        registration_code: registrationCode,
-        registrations: {}
-      }])
-      .select('id')
-      .single();
-
-    if (pilotError) {
-      throw pilotError;
-    }
-
-    // Aktualizuj status zgłoszenia
-    await supabase
-      .from('submissions')
-      .update({
-        status: 'accept',
-        pilot_id: pilot.id
-      })
-      .eq('id', id);
-
-    res.status(200).json({ message: 'Application accepted' });
-  } catch (err) {
-    console.error('Error accepting application:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
-  }
-});
-
-// Odrzucenie zgłoszenia
-app.post('/api/reject-application/:id', verifyToken, verifyAdmin, async (req, res) => {
-  const { id } = req.params;
-  const { reason } = req.body;
-
-  try {
-    // Pobierz aplikację
-    const { data: application, error: appError } = await supabase
-      .from('submissions')
-      .select('email')
-      .eq('id', id)
-      .single();
-
-    if (appError || !application) {
-      return res.status(404).json({ error: 'Application not found' });
-    }
-
-    // Aktualizuj status
-    await supabase
-      .from('submissions')
-      .update({
-        status: 'reject',
-        rejection_reason: reason
-      })
-      .eq('id', id);
-
-    // Wyślij email
-    await sendEmail(
-      application.email,
-      "CometJet Application Status",
-      `Your application has been rejected. Reason: ${reason}`
-    );
-
-    res.status(200).json({ message: 'Application rejected' });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error', details: err.message });
-  }
-});
-
+// Fixed pilot deletion endpoint
 app.delete('/api/pilots/:id', verifyToken, verifyAdmin, async (req, res) => {
   const { id } = req.params;
   try {
+    // First check if pilot exists
+    const { data: pilot, error: fetchError } = await supabase
+      .from('pilots')
+      .select('id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !pilot) {
+      return res.status(404).json({ error: 'Pilot not found' });
+    }
+
+    // Delete pilot
     const { error } = await supabase
       .from('pilots')
       .delete()
@@ -817,6 +742,5 @@ app.delete('/api/pilots/:id', verifyToken, verifyAdmin, async (req, res) => {
     res.status(500).json({ error: 'Błąd usuwania pilota', details: err.message });
   }
 });
-
 
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
