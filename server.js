@@ -1,4 +1,3 @@
-
 const express = require('express');
 const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
@@ -762,7 +761,6 @@ app.use((req, res, next) => {
 app.get('/api/keepalive', (req, res) => {
   res.send('OK');
 });
-
 
 
 
