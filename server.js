@@ -1,3 +1,4 @@
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
@@ -771,7 +772,7 @@ app.get('/api/pilots/:id', verifyToken, verifyAdmin, async (req, res) => {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) throw error;
     res.json(data);
   } catch (error) {
@@ -789,7 +790,7 @@ app.get('/api/applications/:id', verifyToken, verifyAdmin, async (req, res) => {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) throw error;
     res.json(data);
   } catch (error) {
@@ -803,15 +804,15 @@ app.post('/api/applications/:id/accept', verifyToken, verifyAdmin, async (req, r
   try {
     const { id } = req.params;
     const { registrations } = req.body;
-    
+
     // Update the application status
     const { error: updateError } = await supabase
       .from('submissions')
       .update({ status: 'accept', registrations })
       .eq('id', id);
-    
+
     if (updateError) throw updateError;
-    
+
     res.json({ message: 'Application accepted successfully' });
   } catch (error) {
     console.error('Error accepting application:', error);
@@ -823,22 +824,43 @@ app.post('/api/applications/:id/accept', verifyToken, verifyAdmin, async (req, r
 app.post('/api/applications/:id/reject', verifyToken, verifyAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Update the application status
     const { error: updateError } = await supabase
       .from('submissions')
       .update({ status: 'reject' })
       .eq('id', id);
-    
+
     if (updateError) throw updateError;
-    
+
     res.json({ message: 'Application rejected successfully' });
   } catch (error) {
     console.error('Error rejecting application:', error);
     res.status(500).json({ error: 'Error rejecting application', details: error.message });
   }
 });
-
+// Update pilot
+app.put('/api/update-pilot', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const { id, name, email, registrations, role, registration_code } = req.body;
+    console.log('Received /api/update-pilot request:', { id, name, email, registrations, role, registration_code });
+    const { data, error } = await supabase
+      .from('pilots')
+      .update({ name, email, registrations, role, registration_code })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) {
+      console.error('Supabase error in /api/update-pilot:', error);
+      throw error;
+    }
+    console.log('Pilot updated successfully:', data);
+    res.json(data);
+  } catch (error) {
+    console.error('Error updating pilot:', error);
+    res.status(500).json({ error: 'Błąd aktualizacji pilota', details: error.message });
+  }
+});
 
 
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
