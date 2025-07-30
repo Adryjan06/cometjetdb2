@@ -1,4 +1,3 @@
-
 const express = require('express');
 const bodyParser = require('body-parser');
 const nodemailer = require('nodemailer');
@@ -20,82 +19,23 @@ if (!process.env.JWT_SECRET) {
 
 // CORS configuration
 const allowedOrigins = [
+  'https://comet-jet-site.vercel.app',
   'https://cometjetdb2.onrender.com',
   'http://localhost:3000'
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // Allow requests with no origin (e.g., server-to-server)
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
     }
-    // Allow Vercel preview URLs dynamically
-    if (origin.includes('vercel.app') && origin.startsWith('https://comet-jet-site')) {
-      return callback(null, true);
-    }
-    const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-    return callback(new Error(msg), false);
+    return callback(null, true);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
-app.get('/api/fleet-stats', async (req, res) => {
-  try {
-    // Pobierz wszystkich pilotów i ich przypisania
-    const { data: pilots, error } = await supabase
-      .from('pilots')
-      .select('registrations');
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return res.status(500).json({ error: 'Database error', details: error.message });
-    }
-
-    // Zlicz przypisane samoloty dla każdego modelu
-    const modelCounts = {};
-    console.log('Model counts:', modelCounts);
-
-    pilots.forEach(pilot => {
-      if (pilot.registrations && typeof pilot.registrations === 'object') {
-        Object.keys(pilot.registrations).forEach(model => {
-          if (modelCounts[model]) {
-            modelCounts[model]++;
-          } else {
-            modelCounts[model] = 1;
-          }
-        });
-      }
-    });
-
-    // Uzupełnij modele, które nie są używane (0)
-    const allModels = [
-      "Airbus A320neo IniBuilds",
-      "Airbus A320 Fenix",
-      "Airbus A321neo IniBuilds",
-      "Airbus A330neo",
-      "Airbus A350",
-      "Airbus A380 FlyByWire",
-      "Boeing 737-800",
-      "Boeing 737 MAX",
-      "Boeing 787",
-      "Boeing 777-300ER",
-      "Embraer E175"
-    ];
-
-    allModels.forEach(model => {
-      if (!modelCounts.hasOwnProperty(model)) {
-        modelCounts[model] = 0;
-      }
-    });
-
-    res.json(modelCounts);
-  } catch (err) {
-    console.error('Error fetching fleet stats:', err);
-    res.status(500).json({ error: 'Server error', details: err.message });
-  }
-});
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -149,7 +89,6 @@ const aircraftRegistrationMap = {
   'Boeing 777-300ER': 'P',
   'Embraer E175': 'E'
 };
-
 
 // Generate random 2-letter code for registration
 function generateRandomCode() {
@@ -758,109 +697,5 @@ app.use((req, res, next) => {
   }
   next();
 });
-
-app.get('/api/keepalive', (req, res) => {
-  res.send('OK');
-});
-
-// Get single pilot
-app.get('/api/pilots/:id', verifyToken, verifyAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { data, error } = await supabase
-      .from('pilots')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) throw error;
-    res.json(data);
-  } catch (error) {
-    console.error('Error fetching pilot:', error);
-    res.status(500).json({ error: 'Error fetching pilot', details: error.message });
-  }
-});
-
-// Get single application
-app.get('/api/applications/:id', verifyToken, verifyAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { data, error } = await supabase
-      .from('submissions')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) throw error;
-    res.json(data);
-  } catch (error) {
-    console.error('Error fetching application:', error);
-    res.status(500).json({ error: 'Error fetching application', details: error.message });
-  }
-});
-
-// Accept application
-app.post('/api/applications/:id/accept', verifyToken, verifyAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { registrations } = req.body;
-
-    // Update the application status
-    const { error: updateError } = await supabase
-      .from('submissions')
-      .update({ status: 'accept', registrations })
-      .eq('id', id);
-
-    if (updateError) throw updateError;
-
-    res.json({ message: 'Application accepted successfully' });
-  } catch (error) {
-    console.error('Error accepting application:', error);
-    res.status(500).json({ error: 'Error accepting application', details: error.message });
-  }
-});
-
-// Reject application
-app.post('/api/applications/:id/reject', verifyToken, verifyAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    // Update the application status
-    const { error: updateError } = await supabase
-      .from('submissions')
-      .update({ status: 'reject' })
-      .eq('id', id);
-
-    if (updateError) throw updateError;
-
-    res.json({ message: 'Application rejected successfully' });
-  } catch (error) {
-    console.error('Error rejecting application:', error);
-    res.status(500).json({ error: 'Error rejecting application', details: error.message });
-  }
-});
-// Update pilot
-app.put('/api/update-pilot', verifyToken, verifyAdmin, async (req, res) => {
-  try {
-    const { id, name, email, registrations, role, registration_code } = req.body;
-    console.log('Received /api/update-pilot request:', { id, name, email, registrations, role, registration_code });
-    const { data, error } = await supabase
-      .from('pilots')
-      .update({ name, email, registrations, role, registration_code })
-      .eq('id', id)
-      .select()
-      .single();
-    if (error) {
-      console.error('Supabase error in /api/update-pilot:', error);
-      throw error;
-    }
-    console.log('Pilot updated successfully:', data);
-    res.json(data);
-  } catch (error) {
-    console.error('Error updating pilot:', error);
-    res.status(500).json({ error: 'Błąd aktualizacji pilota', details: error.message });
-  }
-});
-
 
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
