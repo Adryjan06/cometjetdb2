@@ -207,18 +207,18 @@ app.post('/api/submit', async (req, res) => {
       .from('submissions')
       .insert([{
         name,
-        email: req.body.email, // Dodano email
+        email: req.body.email,
         discord,
-        newsky,
-        birthdate,
+        callsign: newsky, // Używamy callsign zamiast newsky
+        birth_date: birthdate, // Mapujemy na birth_date
         continent,
-        airport,
-        simulation_experience: simulationExperience, // Zmiana nazwy
+        icao: airport, // Mapujemy airport na icao
+        interest_duration: simulationExperience, // Mapujemy na interest_duration
         simulator: Array.isArray(simulator) ? simulator : [simulator],
-        online_network: onlineNetwork,
-        flying_type: Array.isArray(flyingType) ? flyingType : [flyingType],
-        other_va: otherVA,
-        discovery: Array.isArray(discovery) ? discovery : [discovery],
+        networks: onlineNetwork, // Mapujemy na networks
+        flight_types: Array.isArray(flyingType) ? flyingType : [flyingType], // Mapujemy na flight_types
+        other_airlines: otherVA, // Mapujemy na other_airlines
+        source: Array.isArray(discovery) ? discovery : [discovery], // Mapujemy na source
         experience,
         reason,
         selected_aircrafts: aircrafts
@@ -229,7 +229,7 @@ app.post('/api/submit', async (req, res) => {
       return res.status(500).json({ error: 'Błąd bazy danych', details: error.message });
     }
 
-    await sendEmail(email, "Dziękujemy za zgłoszenie!", "Twoje zgłoszenie zostało przyjęte. Odezwiemy się w ciągu 3 dni.");
+    await sendEmail(req.body.email, "Dziękujemy za zgłoszenie!", "Twoje zgłoszenie zostało przyjęte. Odezwiemy się w ciągu 3 dni.");
     res.status(200).json({ message: 'Zgłoszenie przesłane pomyślnie' });
   } catch (err) {
     console.error('Server error in /api/submit:', err);
