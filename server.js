@@ -195,23 +195,33 @@ app.get('/api/pilot/:id', verifyToken, async (req, res) => {
 });
 
 app.post('/api/submit', async (req, res) => {
-  const { name, email, callsign, experience, reason, aircrafts } = req.body;
-  console.log('Received /api/submit:', { name, email, callsign, experience, reason, aircrafts });
+  const {
+    name, discord, newsky, birthdate, continent, airport,
+    simulationExperience, simulator, onlineNetwork,
+    flyingType, otherVA, discovery,
+    experience, reason, aircrafts
+  } = req.body;
+  
   try {
-    // Ensure aircrafts is an array
-    const aircraftsArray = Array.isArray(aircrafts) ? aircrafts : (typeof aircrafts === 'string' ? aircrafts.split(',').map(s => s.trim()) : []);
-    if (aircraftsArray.length === 0) {
-      return res.status(400).json({ error: 'Nie wybrano żadnych samolotów' });
-    }
     const { data, error } = await supabase
       .from('submissions')
       .insert([{
         name,
-        email,
-        callsign,
+        email: req.body.email, // Dodano email
+        discord,
+        newsky,
+        birthdate,
+        continent,
+        airport,
+        simulation_experience: simulationExperience, // Zmiana nazwy
+        simulator: Array.isArray(simulator) ? simulator : [simulator],
+        online_network: onlineNetwork,
+        flying_type: Array.isArray(flyingType) ? flyingType : [flyingType],
+        other_va: otherVA,
+        discovery: Array.isArray(discovery) ? discovery : [discovery],
         experience,
         reason,
-        selected_aircrafts: aircraftsArray
+        selected_aircrafts: aircrafts
       }]);
 
     if (error) {
@@ -706,6 +716,20 @@ app.head('/api/keepalive', (req, res) => {
 // Dodaj też GET dla kompatybilności
 app.get('/api/keepalive', (req, res) => {
   res.status(200).send('OK');
+});
+
+app.get('/api/full-applications', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
 });
 
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
