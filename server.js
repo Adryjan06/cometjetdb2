@@ -698,4 +698,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// Dodaj nowy endpoint dla keepalive
+app.head('/api/keepalive', (req, res) => {
+  res.status(200).end();
+});
+
+// Dodaj też GET dla kompatybilności
+app.get('/api/keepalive', (req, res) => {
+  res.status(200).send('OK');
+});
+
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
