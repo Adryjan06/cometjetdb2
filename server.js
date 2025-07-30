@@ -20,6 +20,7 @@ if (!process.env.JWT_SECRET) {
 // CORS configuration
 const allowedOrigins = [
   'https://comet-jet-site.vercel.app',
+  'https://comet-jet-site.vercel.app',
   'https://cometjetdb2.onrender.com',
   'http://localhost:3000'
 ];
@@ -171,6 +172,38 @@ app.post('/api/login', async (req, res) => {
   } catch (err) {
     console.error('Server error in /api/login:', err);
     res.status(500).json({ error: 'Błąd serwera', details: err.message });
+  }
+});
+
+
+app.get('/api/full-applications', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+});
+
+// Popraw endpoint dla pojedynczego pilota
+app.get('/api/pilots/:id', verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('pilots')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
 
