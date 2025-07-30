@@ -201,7 +201,7 @@ app.post('/api/submit', async (req, res) => {
     flyingType, otherVA, discovery,
     experience, reason, aircrafts
   } = req.body;
-  
+
   try {
     const { data, error } = await supabase
       .from('submissions')
@@ -234,6 +234,24 @@ app.post('/api/submit', async (req, res) => {
   } catch (err) {
     console.error('Server error in /api/submit:', err);
     res.status(500).json({ error: 'Błąd serwera', details: err.message });
+  }
+});
+
+app.get('/api/applications/:id', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
 
