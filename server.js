@@ -396,7 +396,7 @@ app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
       const tempPassword = generateTempPassword();
       const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
-      // Generate registrations if not provided
+         // Generuj rejestracje tylko jeśli nie podano ręcznych
       let assignedRegistrations = registrations || {};
       if (!registrations || Object.keys(registrations).length === 0) {
         assignedRegistrations = {};
