@@ -762,6 +762,83 @@ app.get('/api/keepalive', (req, res) => {
   res.send('OK');
 });
 
+// Get single pilot
+app.get('/api/pilots/:id', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('pilots')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching pilot:', error);
+    res.status(500).json({ error: 'Error fetching pilot', details: error.message });
+  }
+});
+
+// Get single application
+app.get('/api/applications/:id', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching application:', error);
+    res.status(500).json({ error: 'Error fetching application', details: error.message });
+  }
+});
+
+// Accept application
+app.post('/api/applications/:id/accept', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { registrations } = req.body;
+    
+    // Update the application status
+    const { error: updateError } = await supabase
+      .from('submissions')
+      .update({ status: 'accept', registrations })
+      .eq('id', id);
+    
+    if (updateError) throw updateError;
+    
+    res.json({ message: 'Application accepted successfully' });
+  } catch (error) {
+    console.error('Error accepting application:', error);
+    res.status(500).json({ error: 'Error accepting application', details: error.message });
+  }
+});
+
+// Reject application
+app.post('/api/applications/:id/reject', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Update the application status
+    const { error: updateError } = await supabase
+      .from('submissions')
+      .update({ status: 'reject' })
+      .eq('id', id);
+    
+    if (updateError) throw updateError;
+    
+    res.json({ message: 'Application rejected successfully' });
+  } catch (error) {
+    console.error('Error rejecting application:', error);
+    res.status(500).json({ error: 'Error rejecting application', details: error.message });
+  }
+});
+
 
 
 app.listen(PORT, () => console.log(`Serwer działa na http://localhost:${PORT}`));
