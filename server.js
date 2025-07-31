@@ -391,89 +391,97 @@ app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
       selectedAircrafts = [];
     }
 
-    if (action === "accept") {
-      // Generate temporary password
-      const tempPassword = generateTempPassword();
-      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+if (action === "accept") {
+  // Generate temporary password
+  const tempPassword = generateTempPassword();
+  const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
-         // Generuj rejestracje tylko jeśli nie podano ręcznych
-      let assignedRegistrations = registrations || {};
-      if (!registrations || Object.keys(registrations).length === 0) {
-        assignedRegistrations = {};
-        if (selectedAircrafts.length === 0) {
-          console.warn('No selected aircrafts for registration generation:', { id });
-          return res.status(400).json({ error: 'Nie wybrano samolotów do rejestracji' });
-        }
-        selectedAircrafts.forEach(aircraft => {
-          const letter = aircraftRegistrationMap[aircraft];
-          if (letter) {
-            const code = generateRandomCode();
-            assignedRegistrations[aircraft] = `SP-${code[0]}${letter}${code[1]}`;
-          }
-        });
+  // Generuj rejestracje tylko jeśli nie podano ręcznych
+  let assignedRegistrations = registrations || {};
+  if (!registrations || Object.keys(registrations).length === 0) {
+    assignedRegistrations = {};
+    if (selectedAircrafts.length === 0) {
+      console.warn('No selected aircrafts for registration generation:', { id });
+      return res.status(400).json({ error: 'Nie wybrano samolotów do rejestracji' });
+    }
+    selectedAircrafts.forEach(aircraft => {
+      const letter = aircraftRegistrationMap[aircraft];
+      if (letter) {
+        const code = generateRandomCode();
+        assignedRegistrations[aircraft] = `SP-${code[0]}${letter}${code[1]}`;
       }
+    });
+  }
 
-      // Validate registrations
-      for (const [aircraft, reg] of Object.entries(assignedRegistrations)) {
-        if (!reg.match(/^SP-[A-Z]{3}$/)) {
-          console.error('Invalid registration format:', { aircraft, reg });
-          return res.status(400).json({ error: `Nieprawidłowy format rejestracji dla ${aircraft}: ${reg}. Użyj formatu SP-XYZ.` });
-        }
+  // Validate registrations
+  for (const [aircraft, reg] of Object.entries(assignedRegistrations)) {
+    if (!reg.match(/^SP-[A-Z]{3}$/)) {
+      console.error('Invalid registration format:', { aircraft, reg });
+      return res.status(400).json({ error: `Nieprawidłowy format rejestracji dla ${aircraft}: ${reg}. Użyj formatu SP-XYZ.` });
+    }
+  }
+
+  // Create pilot account with default role 'user'
+  console.log('Creating pilot account:', { email: data.email, name: data.name, registrations: assignedRegistrations, role: 'user' });
+  const { data: newPilot, error: pilotError } = await supabase
+    .from('pilots')
+    .insert([{
+      email: data.email,
+      name: data.name,
+      password: hashedPassword,
+      registrations: assignedRegistrations,
+      first_login: true,
+      role: 'user',
+      created_at: new Date().toISOString(),
+      registration_code: generateRandomCode()
+    }])
+    .select('id')
+    .single();
+
+  if (pilotError) {
+    console.error('Błąd tworzenia konta pilota:', pilotError);
+    return res.status(500).json({ error: 'Błąd tworzenia konta pilota', details: pilotError.message });
+  }
+
+  console.log('New pilot created with id:', newPilot.id);
+  // Update submission with registrations and status
+  console.log('Updating submission:', { id, status: action, registrations: assignedRegistrations });
+  const { error: updateError } = await supabase
+    .from('submissions')
+    .update({
+      status: action,
+      registrations: assignedRegistrations
+    })
+    .eq('id', id);
+
+  if (updateError) {
+    console.error('Błąd aktualizacji zgłoszenia:', updateError);
+    return res.status(500).json({ error: 'Błąd aktualizacji zgłoszenia', details: updateError.message });
+  }
+
+  try {
+    // Przygotuj dane samolotów do szablonu
+    const aircrafts = Object.entries(assignedRegistrations).map(([aircraft, reg]) => ({
+      name: aircraft,
+      registration: reg
+    }));
+
+    const emailContent = await ejs.renderFile(
+      path.join(__dirname, 'views', 'email-template.ejs'),
+      {
+        name: data.name,
+        tempPassword,
+        loginUrl: 'https://cometjetdb2.onrender.com/login.html',
+        aircrafts // Przekazujemy listę samolotów
       }
-
-      // Create pilot account with default role 'user'
-      console.log('Creating pilot account:', { email: data.email, name: data.name, registrations: assignedRegistrations, role: 'user' });
-      const { data: newPilot, error: pilotError } = await supabase
-        .from('pilots')
-        .insert([{
-          email: data.email,
-          name: data.name,
-          password: hashedPassword,
-          registrations: assignedRegistrations,
-          first_login: true,
-          role: 'user',
-          created_at: new Date().toISOString(),
-          registration_code: generateRandomCode()
-        }])
-        .select('id')
-        .single();
-
-      if (pilotError) {
-        console.error('Błąd tworzenia konta pilota:', pilotError);
-        return res.status(500).json({ error: 'Błąd tworzenia konta pilota', details: pilotError.message });
-      }
-
-      console.log('New pilot created with id:', newPilot.id);
-      // Update submission with registrations and status
-      console.log('Updating submission:', { id, status: action, registrations: assignedRegistrations });
-      const { error: updateError } = await supabase
-        .from('submissions')
-        .update({
-          status: action,
-          registrations: assignedRegistrations
-        })
-        .eq('id', id);
-
-      if (updateError) {
-        console.error('Błąd aktualizacji zgłoszenia:', updateError);
-        return res.status(500).json({ error: 'Błąd aktualizacji zgłoszenia', details: updateError.message });
-      }
-
-      try {
-        const emailContent = await ejs.renderFile(
-          path.join(__dirname, 'views', 'email-template.ejs'),
-          {
-            name: data.name,
-            tempPassword,
-            loginUrl: 'https://cometjetdb2.onrender.com/login.html'
-          }
-        );
-        await sendEmail(data.email, "Witaj w CometJet!", emailContent, true);
-      } catch (emailErr) {
-        console.error('Błąd wysyłania emaila:', emailErr);
-        return res.status(500).json({ error: 'Błąd wysyłania emaila', details: emailErr.message });
-      }
-    } else {
+    );
+    
+    await sendEmail(data.email, "Witaj w CometJet!", emailContent, true);
+  } catch (emailErr) {
+    console.error('Błąd wysyłania emaila:', emailErr);
+    return res.status(500).json({ error: 'Błąd wysyłania emaila', details: emailErr.message });
+  }
+} else {
       const rejectionMessage = `
 # CometJet - Recruitment Outcome Notification
 
