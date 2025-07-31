@@ -468,7 +468,7 @@ app.post('/api/action', verifyToken, verifyAdmin, async (req, res) => {
 
         // Użyj poprawnej nazwy szablonu
         const emailContent = await ejs.renderFile(
-          path.join(__dirname, 'views', 'email-confirmation.ejs'),
+          path.join(__dirname, 'views', 'email-template.ejs'),
           {
             name: data.name,
             email: data.email, // Dodaj email jeśli jest potrzebny w szablonie
