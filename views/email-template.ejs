@@ -4,20 +4,24 @@
   <meta charset="UTF-8">
   <title>Mission Briefing – CometJet</title>
 </head>
-<body style="margin:0; padding:20px; background-color:#0b0e1a; font-family:Arial, Helvetica, sans-serif; color:#e0e7ff;">
+<body style="margin:0; padding:0; background-color:#0b0e1a;">
   <center>
     <table width="100%" cellpadding="0" cellspacing="0" border="0">
       <tr>
         <td align="center">
-          <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color:#1a1f35; border:1px solid #4c8bf5;">
+          <!--[if gte mso 9]>
+          <v:background xmlns:v="urn:schemas-microsoft-com:vml" fill="t">
+            <v:fill type="tile" src="https://www.transparenttextures.com/patterns/stardust.png" color="#0b0e1a"/>
+          </v:background>
+          <![endif]-->
+          <table width="600" cellpadding="0" cellspacing="0" border="0" style="background: url('https://www.transparenttextures.com/patterns/stardust.png') #0b0e1a repeat center center;">
             <tr>
-              <td style="padding:30px;">
+              <td style="padding:30px; font-family:Arial, sans-serif; color:#e0e7ff;">
 
                 <!-- LOGO HERE -->
                 <table width="100%" style="margin-bottom:20px;">
                   <tr>
                     <td align="center">
-                      <!-- PLACEHOLDER FOR LOGO -->
                       <img src="https://via.placeholder.com/150x50?text=CometJet+Logo" alt="CometJet Logo" width="150" height="50" style="display:block;">
                     </td>
                   </tr>
@@ -25,13 +29,8 @@
 
                 <!-- Greeting -->
                 <p style="font-size:18px; line-height:1.6; margin:0 0 15px;">🪐 Welcome aboard, <strong style="color:#4c8bf5;"><%= name %></strong>,</p>
-
                 <p style="font-size:16px; line-height:1.6; margin:0 0 15px;">
                   You have officially been assigned to the <strong style="color:#4c8bf5;">CometJet Virtual Fleet</strong>. Your application has cleared mission command with flying colors. 🚀
-                </p>
-
-                <p style="font-size:16px; line-height:1.6; margin:0 0 15px;">
-                  Your passion for aviation resonates with our mission: to explore the skies with precision, realism, and spirit. We're thrilled to welcome you to the crew.
                 </p>
 
                 <!-- Assignment Section -->
@@ -40,9 +39,9 @@
                 <% aircrafts.forEach((aircraft, index) => { %>
                   <table width="100%" cellpadding="10" cellspacing="0" style="background-color:#232a47; border-left:4px solid #4c8bf5; margin-bottom:15px;">
                     <tr>
-                      <td style="font-size:14px; line-height:1.5; color:#e0e7ff;">
-                        <p style="margin:0;"><strong>Craft <%= index+1 %>:</strong> <%= aircraft.name %></p>
-                        <p style="margin:0;"><strong>Reg <%= index+1 %>:</strong> <%= aircraft.registration %></p>
+                      <td style="font-size:14px; line-height:1.5;">
+                        <p style="margin:0; color:#e0e7ff;"><strong>Craft <%= index+1 %>:</strong> <%= aircraft.name %></p>
+                        <p style="margin:0; color:#e0e7ff;"><strong>Reg <%= index+1 %>:</strong> <%= aircraft.registration %></p>
                       </td>
                     </tr>
                   </table>
@@ -51,10 +50,6 @@
                 <p style="font-size:16px; line-height:1.6; margin:0 0 15px;">
                   All assigned spacecraft are currently stationed at our main orbital hub: <strong style="color:#4c8bf5;">Katowice (EPKT)</strong>.<br>
                   <em style="font-size:14px; color:#9ca3af;">*A380-class vehicles are located at our secondary hub – London Gatwick (EGKK).</em>
-                </p>
-
-                <p style="font-size:16px; line-height:1.6; margin:0 0 15px;">
-                  Please follow <strong>Standard Operating Protocols</strong> at all times. Only fly craft assigned to you with their designated registrations.
                 </p>
 
                 <!-- Mission Start -->
