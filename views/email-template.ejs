@@ -2,123 +2,185 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <style>
-        @keyframes floatComet {
-            0% {
-                transform: translateY(0) rotate(0deg);
-                opacity: 0.3;
-            }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome Aboard – CometJet</title>
+  <style>
+    @keyframes floatComet {
+      0% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 0.3;
+      }
 
-            50% {
-                transform: translateY(-20px) rotate(10deg);
-                opacity: 1;
-            }
+      50% {
+        transform: translateY(-20px) rotate(10deg);
+        opacity: 1;
+      }
 
-            100% {
-                transform: translateY(0) rotate(0deg);
-                opacity: 0.3;
-            }
-        }
+      100% {
+        transform: translateY(0) rotate(0deg);
+        opacity: 0.3;
+      }
+    }
 
-        @keyframes glow {
-            0% {
-                box-shadow: 0 0 10px rgba(100, 200, 255, 0.2);
-            }
+    @keyframes glow {
+      0% {
+        box-shadow: 0 0 10px rgba(100, 200, 255, 0.2);
+      }
 
-            50% {
-                box-shadow: 0 0 30px rgba(100, 200, 255, 0.4);
-            }
+      50% {
+        box-shadow: 0 0 30px rgba(100, 200, 255, 0.4);
+      }
 
-            100% {
-                box-shadow: 0 0 10px rgba(100, 200, 255, 0.2);
-            }
-        }
+      100% {
+        box-shadow: 0 0 10px rgba(100, 200, 255, 0.2);
+      }
+    }
 
-        .card {
-            background: linear-gradient(145deg, #151a3c, #0e1230);
-            border: 1px solid #2a2f4d;
-            border-radius: 20px;
-            padding: 30px;
-            max-width: 600px;
-            margin: 0 auto;
-            animation: glow 6s ease-in-out infinite;
-        }
+    @keyframes fadeInUp {
+      0% {
+        opacity: 0;
+        transform: translateY(40px);
+      }
 
-        .comet {
-            position: absolute;
-            top: -30px;
-            right: -30px;
-            width: 80px;
-            animation: floatComet 6s ease-in-out infinite;
-            opacity: 0.8;
-        }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
 
-        .stars {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url('https://www.transparenttextures.com/patterns/stardust.png');
-            opacity: 0.1;
-            z-index: 0;
-        }
+    .card {
+      background: linear-gradient(145deg, #151a3c, #0e1230);
+      border: 1px solid #2a2f4d;
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 700px;
+      margin: 0 auto;
+      animation: glow 6s ease-in-out infinite, fadeInUp 1s ease-out 0.3s both;
+      position: relative;
+      z-index: 2;
+    }
 
-        body{
-        background-color: #0b0f2a;
-        margin: 0;
-        padding: 40px;
-        font-family: 'Segoe UI', sans-serif;
-        color: #ffffff;
-        overflow: hidden;}
-    </style>
+    .comet {
+      position: absolute;
+      top: -30px;
+      right: -30px;
+      width: 80px;
+      animation: floatComet 6s ease-in-out infinite;
+      opacity: 0.8;
+    }
+
+    .stars {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: moveStars 60s linear infinite;
+      z-index: 0;
+    }
+
+    @keyframes moveStars {
+      0% {
+        transform: translate(0, 0);
+      }
+
+      100% {
+        transform: translate(-200px, -200px);
+      }
+    }
+
+    .section-title {
+      color: #6ecbff;
+      font-size: 18px;
+      margin-top: 30px;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    .highlight {
+      color: #6ecbff;
+      font-weight: bold;
+    }
+
+    .aircraft-block {
+      background: rgba(255, 255, 255, 0.05);
+      border-left: 4px solid #6ecbff;
+      padding: 10px 15px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+    }
+
+    a {
+      color: #6ecbff;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
 </head>
-<body>
 
-    <div class="stars"></div>
+<body style="background-color: #0b0f2a; margin: 0; padding: 40px; font-family: 'Segoe UI', sans-serif; color: #ffffff; overflow: hidden;">
 
-    <div class="card" style="position: relative; z-index: 1;">
-        <img src="src/img/logocaleCJ.png" alt="CometJet Logo"
-            style="width: 200px; display: block; margin: 0 auto 20px;" />
+  <div class="stars"></div>
 
+  <div class="card">
+    
 
-        <p style="font-size: 16px; line-height: 1.6;">Dear <strong>
-                <%= name %>
-            </strong>,</p>
+    <p>Dear <strong><%= name %></strong>,</p>
 
-        <p style="font-size: 16px; line-height: 1.6;">
-            Thank you for submitting your application to <strong>CometJet Virtual Airlines</strong>. We’re happy to
-            confirm that we have successfully received your application.
-        </p>
+    <p>We are happy to inform you that you have been <span class="highlight">accepted</span> as a pilot in CometJet Virtual Airlines. Congratulations! 🎉</p>
 
-        <p style="font-size: 16px; line-height: 1.6;">
-            Our recruitment team will review your submission shortly. The approval process usually takes just a few
-            hours, but please allow up to 5 days in rare cases.
-        </p>
+    <p>Your application made a great impression on us. Your enthusiasm and passion for aviation perfectly align with our mission to provide the highest quality virtual flying experience. We’re truly excited to have you on board.</p>
 
-        <p style="font-size: 16px; line-height: 1.6;">
-            You will be notified via email as soon as your application has been reviewed.
-        </p>
+    <p class="section-title">🛫 Your CometJet Assignment Details</p>
 
-        <p style="font-size: 16px; line-height: 1.6;">
-            If you have any questions in the meantime, feel free to reach out to us via <strong>Discord</strong> or
-            email.
-        </p>
+   <p class="section-title">🛫 Your CometJet Assignment Details</p>
 
-        <p style="font-size: 18px; text-align: center; color: #6ecbff; margin-top: 30px;">
-            Welcome aboard – and thank you for choosing CometJet! 🛰️
-        </p>
+<% aircrafts.forEach((aircraft, index) => { %>
+  <div class="aircraft-block">
+    <p><strong>Aircraft <%= index+1 %>:</strong> <%= aircraft.name %></p>
+    <p><strong>Registration <%= index+1 %>:</strong> <%= aircraft.registration %></p>
+  </div>
+<% }); %>
 
-        <p style="font-size: 14px; color: #aaa; margin-top: 40px;">
-            Best regards,<br>
-            <strong>CometJet Team</strong>
-        </p>
+    <p>All assigned aircraft are currently based at our main HUB: <strong>Katowice Airport (EPKT)</strong>.<br>
+      <em>*If you’ve been assigned an Airbus A380, it's located at our secondary hub – London Gatwick (EGKK).</em></p>
 
-        <img class="comet" src="src/img/kometka.png" alt="Comet">
-    </div>
-    </body>
+    <p>Please make sure to follow our <strong>Standard Operating Procedures</strong> and airline rules at all times. You are kindly requested to fly only your assigned aircraft using the provided registrations.</p>
+
+    <p class="section-title">🌐 Start Flying!</p>
+    <p>Join us on Newsky: <br>
+      <a href="https://newsky.app/airline/CMT/info" target="_blank">https://newsky.app/airline/CMT/info</a></p>
+
+    <p>Before your first flight, we recommend:</p>
+    <ul>
+      <li>📘 Reading our SOP (<a href="#">link</a>)</li>
+      <li>✈️ Downloading liveries from the <a href="https://comet-jet-site.vercel.app/livery.html">LIVERIES</a> section (password: <code>ComJetPlenCP24</code>)</li>
+    </ul>
+
+    <p class="section-title">🔐 Pilot Portal Login</p>
+    <p><strong>Login Email:</strong> <%= email %><br>
+      <strong>Temporary Password:</strong> <%= tempPassword %><br>
+      <em>This is a one-time password. Please change it after your first login.</em>
+    </p>
+
+    <p style="margin-top: 30px;">We’re thrilled to have you flying with us.<br>
+      If you need help, don’t hesitate to reach out via <strong>Discord</strong> or email.</p>
+
+    <p style="font-size: 14px; color: #aaa; margin-top: 40px;">
+      Blue skies,<br>
+      <strong>KayJayKay & Aviaced</strong><br>
+      CEOs – CometJet VA
+    </p>
+
+ 
+  </div>
+</body>
 
 </html>
