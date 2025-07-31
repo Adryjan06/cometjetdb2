@@ -1,351 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Welcome Aboard – CometJet</title>
-  <style>
-    @keyframes floatComet {
-      0% {
-        transform: translateY(0) rotate(0deg);
-        opacity: 0.3;
-      }
-      50% {
-        transform: translateY(-20px) rotate(10deg);
-        opacity: 1;
-      }
-      100% {
-        transform: translateY(0) rotate(0deg);
-        opacity: 0.3;
-      }
-    }
-
-    @keyframes glow {
-      0% {
-        box-shadow: 0 0 10px rgba(100, 200, 255, 0.2);
-      }
-      50% {
-        box-shadow: 0 0 30px rgba(100, 200, 255, 0.6);
-      }
-      100% {
-        box-shadow: 0 0 10px rgba(100, 200, 255, 0.2);
-      }
-    }
-
-    @keyframes fadeInUp {
-      0% {
-        opacity: 0;
-        transform: translateY(40px);
-      }
-      100% {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes pulse {
-      0% {
-        transform: scale(1);
-      }
-      50% {
-        transform: scale(1.05);
-      }
-      100% {
-        transform: scale(1);
-      }
-    }
-
-    @keyframes moveStars {
-      0% {
-        transform: translate(0, 0);
-      }
-      100% {
-        transform: translate(-200px, -200px);
-      }
-    }
-
-    @keyframes twinkle {
-      0% {
-        opacity: 0.2;
-      }
-      50% {
-        opacity: 1;
-      }
-      100% {
-        opacity: 0.2;
-      }
-    }
-
-    @keyframes float {
-      0% {
-        transform: translateY(0px);
-      }
-      50% {
-        transform: translateY(-10px);
-      }
-      100% {
-        transform: translateY(0px);
-      }
-    }
-
-    body {
-      background-color: #0b0f2a;
-      margin: 0;
-      padding: 40px;
-      font-family: 'Segoe UI', sans-serif;
-      color: #ffffff;
-      overflow: hidden;
-      background-image: 
-        radial-gradient(circle, rgba(110, 203, 255, 0.1) 1px, transparent 1px),
-        radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-      background-size: 50px 50px, 30px 30px;
-      animation: moveStars 120s linear infinite;
-    }
-
-    .card {
-      background: linear-gradient(145deg, #151a3c, #0e1230);
-      border: 1px solid rgba(110, 203, 255, 0.3);
-      border-radius: 20px;
-      padding: 40px;
-      max-width: 700px;
-      margin: 0 auto;
-      animation: glow 6s ease-in-out infinite, fadeInUp 1s ease-out 0.3s both;
-      position: relative;
-      z-index: 2;
-      backdrop-filter: blur(5px);
-      overflow: hidden;
-    }
-
-    .card::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(110, 203, 255, 0.1) 0%, transparent 70%);
-      animation: pulse 8s infinite alternate;
-      z-index: -1;
-    }
-
-    .comet {
-      position: absolute;
-      top: -30px;
-      right: -30px;
-      width: 80px;
-      animation: floatComet 6s ease-in-out infinite;
-      opacity: 0.8;
-      filter: drop-shadow(0 0 10px rgba(110, 203, 255, 0.7));
-    }
-
-    .section-title {
-      color: #6ecbff;
-      font-size: 18px;
-      margin-top: 30px;
-      margin-bottom: 10px;
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      position: relative;
-      display: inline-block;
-    }
-
-    .section-title::after {
-      content: '';
-      position: absolute;
-      bottom: -5px;
-      left: 0;
-      width: 100%;
-      height: 2px;
-      background: linear-gradient(90deg, #6ecbff, transparent);
-    }
-
-    .highlight {
-      color: #6ecbff;
-      font-weight: bold;
-      text-shadow: 0 0 10px rgba(110, 203, 255, 0.5);
-    }
-
-    .aircraft-block {
-      background: rgba(255, 255, 255, 0.05);
-      border-left: 4px solid #6ecbff;
-      padding: 15px;
-      margin-bottom: 15px;
-      border-radius: 10px;
-      transition: all 0.3s ease;
-      animation: fadeInUp 0.5s ease-out;
-    }
-
-    .aircraft-block:hover {
-      background: rgba(110, 203, 255, 0.1);
-      transform: translateX(5px);
-    }
-
-    a {
-      color: #6ecbff;
-      text-decoration: none;
-      transition: all 0.3s ease;
-      position: relative;
-    }
-
-    a::after {
-      content: '';
-      position: absolute;
-      bottom: -2px;
-      left: 0;
-      width: 0;
-      height: 1px;
-      background: #6ecbff;
-      transition: width 0.3s ease;
-    }
-
-    a:hover {
-      text-shadow: 0 0 10px rgba(110, 203, 255, 0.7);
-    }
-
-    a:hover::after {
-      width: 100%;
-    }
-
-    ul {
-      padding-left: 20px;
-    }
-
-    li {
-      margin-bottom: 8px;
-      position: relative;
-      padding-left: 20px;
-      animation: fadeInUp 0.5s ease-out;
-    }
-
-    li::before {
-      content: '✈';
-      position: absolute;
-      left: 0;
-      color: #6ecbff;
-    }
-
-    .confetti {
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      background-color: #6ecbff;
-      opacity: 0;
-      z-index: 1;
-    }
-
-    .signature {
-      margin-top: 40px;
-      padding-top: 20px;
-      border-top: 1px solid rgba(110, 203, 255, 0.3);
-      animation: fadeInUp 0.8s ease-out;
-    }
-
-    .pulse-text {
-      animation: pulse 2s infinite;
-      display: inline-block;
-    }
-
-    .floating-icon {
-      display: inline-block;
-      animation: float 3s ease-in-out infinite;
-    }
-
-    .twinkling-star {
-      position: absolute;
-      background-color: white;
-      border-radius: 50%;
-      animation: twinkle 2s infinite alternate;
-    }
-  </style>
 </head>
+<body style="background-color: #f5f7fa; margin: 0; padding: 20px; font-family: Arial, Helvetica, sans-serif; color: #333333;">
+  <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e0e7ff; border-radius: 10px;">
+    <tr>
+      <td style="padding: 30px; position: relative;">
+        <!-- Comet SVG -->
+        <div style="position: absolute; top: 10px; right: 10px;">
+          <svg width="50" height="50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#4c8bf5">
+            <path d="M12 2L4 20l16-8-8-10zm0 5l5.5 5.5L12 13l-5.5 1.5L12 7z"/>
+          </svg>
+        </div>
 
-<body>
-  <div class="card">
-    <svg class="comet" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#6ecbff">
-      <path d="M12 2L4 20l16-8-8-10zm0 5l5.5 5.5L12 13l-5.5 1.5L12 7z"/>
-    </svg>
+        <!-- Greeting -->
+        <p style="font-size: 16px; line-height: 1.5; margin: 0 0 15px;">Dear <strong style="color: #4c8bf5;"><%= name %></strong>,</p>
 
-    <p>Dear <strong class="highlight"><%= name %></strong>,</p>
+        <p style="font-size: 16px; line-height: 1.5; margin: 0 0 15px;">We are happy to inform you that you have been <span style="color: #4c8bf5; font-weight: bold;">accepted</span> as a pilot in CometJet Virtual Airlines. Congratulations! 🎉</p>
 
-    <p>We are happy to inform you that you have been <span class="highlight">accepted</span> as a pilot in CometJet Virtual Airlines. Congratulations! <span class="floating-icon">🎉</span></p>
+        <p style="font-size: 16px; line-height: 1.5; margin: 0 0 15px;">Your application made a great impression on us. Your enthusiasm and passion for aviation perfectly align with our mission to provide the highest quality virtual flying experience. We're truly excited to have you on board.</p>
 
-    <p>Your application made a great impression on us. Your enthusiasm and passion for aviation perfectly align with our mission to provide the highest quality virtual flying experience. We're truly excited to have you on board.</p>
+        <!-- Assignment Details -->
+        <p style="font-size: 14px; color: #4c8bf5; font-weight: bold; text-transform: uppercase; margin: 25px 0 10px; border-bottom: 2px solid #4c8bf5; display: inline-block;">🛫 Your CometJet Assignment Details</p>
 
-    <p class="section-title">🛫 Your CometJet Assignment Details</p>
+        <% aircrafts.forEach((aircraft, index) => { %>
+          <table border="0" cellpadding="10" cellspacing="0" width="100%" style="background-color: #f8faff; border-left: 4px solid #4c8bf5; border-radius: 5px; margin-bottom: 15px;">
+            <tr>
+              <td style="font-size: 14px; line-height: 1.5;">
+                <p style="margin: 0;"><strong>Aircraft <%= index+1 %>:</strong> <%= aircraft.name %></p>
+                <p style="margin: 0;"><strong>Registration <%= index+1 %>:</strong> <%= aircraft.registration %></p>
+              </td>
+            </tr>
+          </table>
+        <% }); %>
 
-    <% aircrafts.forEach((aircraft, index) => { %>
-      <div class="aircraft-block">
-        <p><strong>Aircraft <%= index+1 %>:</strong> <%= aircraft.name %></p>
-        <p><strong>Registration <%= index+1 %>:</strong> <%= aircraft.registration %></p>
-      </div>
-    <% }); %>
+        <p style="font-size: 16px; line-height: 1.5; margin: 0 0 15px;">All assigned aircraft are currently based at our main HUB: <strong style="color: #4c8bf5;">Katowice Airport (EPKT)</strong>.<br>
+          <em style="font-size: 14px; color: #666666;">*If you've been assigned an Airbus A380, it's located at our secondary hub – London Gatwick (EGKK).</em></p>
 
-    <p>All assigned aircraft are currently based at our main HUB: <strong class="pulse-text">Katowice Airport (EPKT)</strong>.<br>
-      <em>*If you've been assigned an Airbus A380, it's located at our secondary hub – London Gatwick (EGKK).</em></p>
+        <p style="font-size: 16px; line-height: 1.5; margin: 0 0 15px;">Please make sure to follow our <strong>Standard Operating Procedures</strong> and airline rules at all times. You are kindly requested to fly only your assigned aircraft using the provided registrations.</p>
 
-    <p>Please make sure to follow our <strong>Standard Operating Procedures</strong> and airline rules at all times. You are kindly requested to fly only your assigned aircraft using the provided registrations.</p>
+        <!-- Start Flying -->
+        <p style="font-size: 14px; color: #4c8bf5; font-weight: bold; text-transform: uppercase; margin: 25px 0 10px; border-bottom: 2px solid #4c8bf5; display: inline-block;">🌐 Start Flying!</p>
+        <p style="font-size: 16px; line-height: 1.5; margin: 0 0 15px;">Join us on Newsky: <br>
+          <a href="https://newsky.app/airline/CMT/info" target="_blank" style="color: #4c8bf5; text-decoration: none; border-bottom: 1px solid #4c8bf5;">https://newsky.app/airline/CMT/info</a></p>
 
-    <p class="section-title">🌐 Start Flying!</p>
-    <p>Join us on Newsky: <br>
-      <a href="https://newsky.app/airline/CMT/info" target="_blank">https://newsky.app/airline/CMT/info</a></p>
+        <p style="font-size: 16px; line-height: 1.5; margin: 0 0 10px;">Before your first flight, we recommend:</p>
+        <ul style="font-size: 16px; line-height: 1.5; margin: 0 0 15px; padding-left: 20px;">
+          <li style="margin-bottom: 8px;">📘 Reading our SOP (<a href="#" style="color: #4c8bf5; text-decoration: none; border-bottom: 1px solid #4c8bf5;">link</a>)</li>
+          <li style="margin-bottom: 8px;">✈️ Downloading liveries from the <a href="https://comet-jet-site.vercel.app/livery.html" style="color: #4c8bf5; text-decoration: none; border-bottom: 1px solid #4c8bf5;">LIVERIES</a> section (password: <code style="background-color: #f0f0f0; padding: 2px 4px; border-radius: 3px;">ComJetPlenCP24</code>)</li>
+        </ul>
 
-    <p>Before your first flight, we recommend:</p>
-    <ul>
-      <li>📘 Reading our SOP (<a href="#">link</a>)</li>
-      <li>✈️ Downloading liveries from the <a href="https://comet-jet-site.vercel.app/livery.html">LIVERIES</a> section (password: <code>ComJetPlenCP24</code>)</li>
-    </ul>
+        <!-- Pilot Portal Login -->
+        <p style="font-size: 14px; color: #4c8bf5; font-weight: bold; text-transform: uppercase; margin: 25px 0 10px; border-bottom: 2px solid #4c8bf5; display: inline-block;">🔐 Pilot Portal Login</p>
+        <p style="font-size: 16px; line-height: 1.5; margin: 0 0 15px;">
+          <strong>Login Email:</strong> <%= email %><br>
+          <strong>Temporary Password:</strong> <%= tempPassword %><br>
+          <em style="font-size: 14px; color: #666666;">This is a one-time password. Please change it after your first login.</em>
+        </p>
 
-    <p class="section-title">🔐 Pilot Portal Login</p>
-    <p><strong>Login Email:</strong> <%= email %><br>
-      <strong>Temporary Password:</strong> <%= tempPassword %><br>
-      <em>This is a one-time password. Please change it after your first login.</em>
-    </p>
+        <!-- Signature -->
+        <div style="border-top: 1px solid #e0e7ff; padding-top: 20px; margin-top: 30px;">
+          <p style="font-size: 16px; line-height: 1.5; margin: 0 0 15px;">We're thrilled to have you flying with us.<br>
+            If you need help, don't hesitate to reach out via <strong>Discord</strong> or email.</p>
 
-    <div class="signature">
-      <p>We're thrilled to have you flying with us.<br>
-        If you need help, don't hesitate to reach out via <strong>Discord</strong> or email.</p>
-
-      <p style="font-size: 14px; color: #aaa; margin-top: 20px;">
-        Blue skies,<br>
-        <strong>KayJayKay & Aviaced</strong><br>
-        CEOs – CometJet VA
-      </p>
-    </div>
-  </div>
-
-  <script>
-    // Twinkling stars
-    document.addEventListener('DOMContentLoaded', function() {
-      const body = document.querySelector('body');
-      for (let i = 0; i < 50; i++) {
-        const star = document.createElement('div');
-        star.classList.add('twinkling-star');
-        star.style.width = `${Math.random() * 3 + 1}px`;
-        star.style.height = star.style.width;
-        star.style.left = `${Math.random() * 100}%`;
-        star.style.top = `${Math.random() * 100}%`;
-        star.style.animationDelay = `${Math.random() * 5}s`;
-        body.appendChild(star);
-      }
-
-      // Confetti effect on load
-      const card = document.querySelector('.card');
-      for (let i = 0; i < 30; i++) {
-        const confetti = document.createElement('div');
-        confetti.classList.add('confetti');
-        confetti.style.left = `${Math.random() * 100}%`;
-        confetti.style.top = `${Math.random() * 100}%`;
-        confetti.style.backgroundColor = `hsl(${Math.random() * 60 + 180}, 100%, 70%)`;
-        confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
-        confetti.style.width = `${Math.random() * 8 + 4}px`;
-        confetti.style.height = `${Math.random() * 3 + 1}px`;
-        confetti.style.animation = `fadeInUp ${Math.random() * 0.5 + 0.5}s ease-out ${Math.random() * 0.5}s forwards`;
-        card.appendChild(confetti);
-      }
-    });
-  </script>
+          <p style="font-size: 14px; color: #666666; line-height: 1.5; margin: 0;">
+            Blue skies,<br>
+            <strong>KayJayKay & Aviaced</strong><br>
+            CEOs – CometJet VA
+          </p>
+        </div>
+      </td>
+    </tr>
+  </table>
 </body>
-
 </html>
