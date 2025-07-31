@@ -308,6 +308,8 @@ app.get('/api/applications', verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
+
+
 app.get('/api/pilots', verifyToken, verifyAdmin, async (req, res) => {
   try {
     console.log('Fetching pilots from Supabase...');
@@ -364,6 +366,41 @@ app.get('/admin', verifyToken, verifyAdmin, async (req, res) => {
   } catch (err) {
     console.error('Błąd serwera w /admin:', err);
     res.status(500).send('Wewnętrzny błąd serwera');
+  }
+});
+
+app.get('/api/fleet-stats', async (req, res) => {
+  try {
+    // Pobierz wszystkich pilotów z ich rejestracjami
+    const { data: pilots, error } = await supabase
+      .from('pilots')
+      .select('registrations');
+
+    if (error) throw error;
+
+    // Przygotuj obiekt statystyk
+    const stats = {};
+    
+    // Inicjalizuj wszystkie modele z mapowania
+    Object.keys(aircraftRegistrationMap).forEach(model => {
+      stats[model] = 0;
+    });
+
+    // Zlicz aktywne rejestracje
+    pilots.forEach(pilot => {
+      if (pilot.registrations) {
+        Object.keys(pilot.registrations).forEach(model => {
+          if (stats[model] !== undefined) {
+            stats[model]++;
+          }
+        });
+      }
+    });
+
+    res.json(stats);
+  } catch (err) {
+    console.error('Błąd w /api/fleet-stats:', err);
+    res.status(500).json({ error: 'Błąd pobierania statystyk floty', details: err.message });
   }
 });
 
