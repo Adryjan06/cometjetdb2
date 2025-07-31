@@ -2,78 +2,108 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome Aboard – CometJet</title>
+  <title>Mission Briefing – CometJet</title>
 </head>
-<body style="background-color: #f5f7fa; margin: 0; padding: 20px; font-family: Arial, Helvetica, sans-serif; color: #333333;">
-  <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border: 1px solid #e0e7ff; border-radius: 10px;">
-    <tr>
-      <td style="padding: 30px; position: relative;">
-        <!-- Comet SVG -->
-        <div style="position: absolute; top: 10px; right: 10px;">
-          <svg width="50" height="50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#4c8bf5">
-            <path d="M12 2L4 20l16-8-8-10zm0 5l5.5 5.5L12 13l-5.5 1.5L12 7z"/>
-          </svg>
-        </div>
-
-        <!-- Greeting -->
-        <p style="font-size: 16px; line-height: 1.5; margin: 0 0 15px;">Dear <strong style="color: #4c8bf5;"><%= name %></strong>,</p>
-
-        <p style="font-size: 16px; line-height: 1.5; margin: 0 0 15px;">We are happy to inform you that you have been <span style="color: #4c8bf5; font-weight: bold;">accepted</span> as a pilot in CometJet Virtual Airlines. Congratulations! 🎉</p>
-
-        <p style="font-size: 16px; line-height: 1.5; margin: 0 0 15px;">Your application made a great impression on us. Your enthusiasm and passion for aviation perfectly align with our mission to provide the highest quality virtual flying experience. We're truly excited to have you on board.</p>
-
-        <!-- Assignment Details -->
-        <p style="font-size: 14px; color: #4c8bf5; font-weight: bold; text-transform: uppercase; margin: 25px 0 10px; border-bottom: 2px solid #4c8bf5; display: inline-block;">🛫 Your CometJet Assignment Details</p>
-
-        <% aircrafts.forEach((aircraft, index) => { %>
-          <table border="0" cellpadding="10" cellspacing="0" width="100%" style="background-color: #f8faff; border-left: 4px solid #4c8bf5; border-radius: 5px; margin-bottom: 15px;">
+<body style="margin:0; padding:20px; background-color:#0b0e1a; font-family:Arial, Helvetica, sans-serif; color:#e0e7ff;">
+  <center>
+    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+      <tr>
+        <td align="center">
+          <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color:#1a1f35; border:1px solid #4c8bf5;">
             <tr>
-              <td style="font-size: 14px; line-height: 1.5;">
-                <p style="margin: 0;"><strong>Aircraft <%= index+1 %>:</strong> <%= aircraft.name %></p>
-                <p style="margin: 0;"><strong>Registration <%= index+1 %>:</strong> <%= aircraft.registration %></p>
+              <td style="padding:30px;">
+
+                <!-- LOGO HERE -->
+                <table width="100%" style="margin-bottom:20px;">
+                  <tr>
+                    <td align="center">
+                      <!-- PLACEHOLDER FOR LOGO -->
+                      <img src="https://via.placeholder.com/150x50?text=CometJet+Logo" alt="CometJet Logo" width="150" height="50" style="display:block;">
+                    </td>
+                  </tr>
+                </table>
+
+                <!-- Greeting -->
+                <p style="font-size:18px; line-height:1.6; margin:0 0 15px;">🪐 Welcome aboard, <strong style="color:#4c8bf5;"><%= name %></strong>,</p>
+
+                <p style="font-size:16px; line-height:1.6; margin:0 0 15px;">
+                  You have officially been assigned to the <strong style="color:#4c8bf5;">CometJet Virtual Fleet</strong>. Your application has cleared mission command with flying colors. 🚀
+                </p>
+
+                <p style="font-size:16px; line-height:1.6; margin:0 0 15px;">
+                  Your passion for aviation resonates with our mission: to explore the skies with precision, realism, and spirit. We're thrilled to welcome you to the crew.
+                </p>
+
+                <!-- Assignment Section -->
+                <p style="font-size:14px; font-weight:bold; color:#4c8bf5; text-transform:uppercase; border-bottom:2px solid #4c8bf5; display:inline-block; margin:25px 0 10px;">🛰️ Hangar Assignment</p>
+
+                <% aircrafts.forEach((aircraft, index) => { %>
+                  <table width="100%" cellpadding="10" cellspacing="0" style="background-color:#232a47; border-left:4px solid #4c8bf5; margin-bottom:15px;">
+                    <tr>
+                      <td style="font-size:14px; line-height:1.5; color:#e0e7ff;">
+                        <p style="margin:0;"><strong>Craft <%= index+1 %>:</strong> <%= aircraft.name %></p>
+                        <p style="margin:0;"><strong>Reg <%= index+1 %>:</strong> <%= aircraft.registration %></p>
+                      </td>
+                    </tr>
+                  </table>
+                <% }); %>
+
+                <p style="font-size:16px; line-height:1.6; margin:0 0 15px;">
+                  All assigned spacecraft are currently stationed at our main orbital hub: <strong style="color:#4c8bf5;">Katowice (EPKT)</strong>.<br>
+                  <em style="font-size:14px; color:#9ca3af;">*A380-class vehicles are located at our secondary hub – London Gatwick (EGKK).</em>
+                </p>
+
+                <p style="font-size:16px; line-height:1.6; margin:0 0 15px;">
+                  Please follow <strong>Standard Operating Protocols</strong> at all times. Only fly craft assigned to you with their designated registrations.
+                </p>
+
+                <!-- Mission Start -->
+                <p style="font-size:14px; font-weight:bold; color:#4c8bf5; text-transform:uppercase; border-bottom:2px solid #4c8bf5; display:inline-block; margin:25px 0 10px;">🌌 Launch Sequence</p>
+                <p style="font-size:16px; line-height:1.6; margin:0 0 15px;">
+                  Connect to mission control on Newsky:<br>
+                  <a href="https://newsky.app/airline/CMT/info" target="_blank" style="color:#4c8bf5; text-decoration:none; border-bottom:1px solid #4c8bf5;">https://newsky.app/airline/CMT/info</a>
+                </p>
+
+                <p style="font-size:16px; line-height:1.6; margin:0 0 10px;">Pre-launch checklist:</p>
+                <ul style="font-size:16px; line-height:1.6; margin:0 0 15px; padding-left:20px;">
+                  <li style="margin-bottom:8px;">📘 Review the <a href="#" style="color:#4c8bf5; text-decoration:none; border-bottom:1px solid #4c8bf5;">Mission SOP Manual</a></li>
+                  <li style="margin-bottom:8px;">🪂 Download fleet liveries from the <a href="https://comet-jet-site.vercel.app/livery.html" style="color:#4c8bf5; text-decoration:none; border-bottom:1px solid #4c8bf5;">LIVERY BAY</a> (password: <code style="background-color:#1f2937; padding:2px 4px; border-radius:3px;">ComJetPlenCP24</code>)</li>
+                </ul>
+
+                <!-- Credentials -->
+                <p style="font-size:14px; font-weight:bold; color:#4c8bf5; text-transform:uppercase; border-bottom:2px solid #4c8bf5; display:inline-block; margin:25px 0 10px;">🔐 Command Login</p>
+                <p style="font-size:16px; line-height:1.6; margin:0 0 15px;">
+                  <strong>Comms Email:</strong> <%= email %><br>
+                  <strong>Access Code:</strong> <%= tempPassword %><br>
+                  <em style="font-size:14px; color:#9ca3af;">This is a one-time access key. Please set your secure credentials upon first login.</em>
+                </p>
+
+                <!-- Signature -->
+                <table width="100%" style="border-top:1px solid #4c8bf5; margin-top:30px; padding-top:20px;">
+                  <tr>
+                    <td>
+                      <p style="font-size:16px; line-height:1.6; margin:0 0 15px;">
+                        We look forward to flying the stars with you.<br>
+                        If support is needed, hail us via <strong>Discord</strong> or direct comms.
+                      </p>
+                      <p style="font-size:14px; color:#9ca3af; margin:0;">
+                        Blue skies and safe journeys,<br>
+                        <strong>KayJayKay & Aviaced</strong><br>
+                        Fleet Command – CometJet VA
+                      </p>
+                      <p style="font-size:14px; color:#6b7280; margin-top:20px; font-style:italic;">
+                        "The sky is not the limit. It’s just the beginning."
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+
               </td>
             </tr>
           </table>
-        <% }); %>
-
-        <p style="font-size: 16px; line-height: 1.5; margin: 0 0 15px;">All assigned aircraft are currently based at our main HUB: <strong style="color: #4c8bf5;">Katowice Airport (EPKT)</strong>.<br>
-          <em style="font-size: 14px; color: #666666;">*If you've been assigned an Airbus A380, it's located at our secondary hub – London Gatwick (EGKK).</em></p>
-
-        <p style="font-size: 16px; line-height: 1.5; margin: 0 0 15px;">Please make sure to follow our <strong>Standard Operating Procedures</strong> and airline rules at all times. You are kindly requested to fly only your assigned aircraft using the provided registrations.</p>
-
-        <!-- Start Flying -->
-        <p style="font-size: 14px; color: #4c8bf5; font-weight: bold; text-transform: uppercase; margin: 25px 0 10px; border-bottom: 2px solid #4c8bf5; display: inline-block;">🌐 Start Flying!</p>
-        <p style="font-size: 16px; line-height: 1.5; margin: 0 0 15px;">Join us on Newsky: <br>
-          <a href="https://newsky.app/airline/CMT/info" target="_blank" style="color: #4c8bf5; text-decoration: none; border-bottom: 1px solid #4c8bf5;">https://newsky.app/airline/CMT/info</a></p>
-
-        <p style="font-size: 16px; line-height: 1.5; margin: 0 0 10px;">Before your first flight, we recommend:</p>
-        <ul style="font-size: 16px; line-height: 1.5; margin: 0 0 15px; padding-left: 20px;">
-          <li style="margin-bottom: 8px;">📘 Reading our SOP (<a href="#" style="color: #4c8bf5; text-decoration: none; border-bottom: 1px solid #4c8bf5;">link</a>)</li>
-          <li style="margin-bottom: 8px;">✈️ Downloading liveries from the <a href="https://comet-jet-site.vercel.app/livery.html" style="color: #4c8bf5; text-decoration: none; border-bottom: 1px solid #4c8bf5;">LIVERIES</a> section (password: <code style="background-color: #f0f0f0; padding: 2px 4px; border-radius: 3px;">ComJetPlenCP24</code>)</li>
-        </ul>
-
-        <!-- Pilot Portal Login -->
-        <p style="font-size: 14px; color: #4c8bf5; font-weight: bold; text-transform: uppercase; margin: 25px 0 10px; border-bottom: 2px solid #4c8bf5; display: inline-block;">🔐 Pilot Portal Login</p>
-        <p style="font-size: 16px; line-height: 1.5; margin: 0 0 15px;">
-          <strong>Login Email:</strong> <%= email %><br>
-          <strong>Temporary Password:</strong> <%= tempPassword %><br>
-          <em style="font-size: 14px; color: #666666;">This is a one-time password. Please change it after your first login.</em>
-        </p>
-
-        <!-- Signature -->
-        <div style="border-top: 1px solid #e0e7ff; padding-top: 20px; margin-top: 30px;">
-          <p style="font-size: 16px; line-height: 1.5; margin: 0 0 15px;">We're thrilled to have you flying with us.<br>
-            If you need help, don't hesitate to reach out via <strong>Discord</strong> or email.</p>
-
-          <p style="font-size: 14px; color: #666666; line-height: 1.5; margin: 0;">
-            Blue skies,<br>
-            <strong>KayJayKay & Aviaced</strong><br>
-            CEOs – CometJet VA
-          </p>
-        </div>
-      </td>
-    </tr>
-  </table>
+        </td>
+      </tr>
+    </table>
+  </center>
 </body>
 </html>
