@@ -1,511 +1,668 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CometJet - Application Accepted</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        body {
-            background: linear-gradient(135deg, #0a0e17, #1a2138);
-            color: #e0f0ff;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 800px;
-            width: 100%;
-            background: rgba(15, 23, 42, 0.9);
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 15px 50px rgba(0, 10, 30, 0.8);
-            position: relative;
-            border: 1px solid rgba(80, 150, 255, 0.2);
-        }
-        
-        .header {
-            background: linear-gradient(120deg, #00172d, #003153, #0a3366);
-            padding: 30px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            border-bottom: 2px solid rgba(100, 180, 255, 0.3);
-        }
-        
-        .header::before {
-            content: "";
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-            animation: shine 8s infinite linear;
-            transform: rotate(30deg);
-        }
-        
-        .logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 15px;
-            position: relative;
-            z-index: 2;
-        }
-        
-        .logo-icon {
-            font-size: 2.5rem;
-            color: #66bb6a;
-            margin-right: 15px;
-            animation: pulse 2s infinite;
-        }
-        
-        .logo-text {
-            font-size: 2.8rem;
-            font-weight: 800;
-            background: linear-gradient(45deg, #66bb6a, #81c784, #a5d6a7);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 20px rgba(102, 187, 106, 0.3);
-        }
-        
-        .tagline {
-            font-size: 1.1rem;
-            color: #bbdefb;
-            letter-spacing: 1px;
-            margin-top: 5px;
-            position: relative;
-            z-index: 2;
-        }
-        
-        .email-content {
-            padding: 30px;
-            position: relative;
-        }
-        
-        .stars {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-        
-        .star {
-            position: absolute;
-            background: white;
-            border-radius: 50%;
-            animation: twinkle var(--duration) infinite ease-in-out;
-        }
-        
-        .email-body {
-            position: relative;
-            z-index: 10;
-            background: rgba(15, 25, 45, 0.6);
-            border-radius: 15px;
-            padding: 30px;
-            border: 1px solid rgba(100, 180, 255, 0.1);
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
-        }
-        
-        .email-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid rgba(100, 180, 255, 0.2);
-        }
-        
-        .email-icon {
-            font-size: 2.5rem;
-            width: 70px;
-            height: 70px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            margin-right: 20px;
-        }
-        
-        .email-icon {
-            background: rgba(102, 187, 106, 0.2);
-            color: #66bb6a;
-            border: 2px solid rgba(102, 187, 106, 0.4);
-        }
-        
-        .email-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-        
-        .email-subtitle {
-            color: #bbdefb;
-            font-size: 1.1rem;
-        }
-        
-        .email-text {
-            line-height: 1.8;
-            margin-bottom: 25px;
-            color: #e3f2fd;
-        }
-        
-        .email-text p {
-            margin-bottom: 15px;
-        }
-        
-        .highlight {
-            background: rgba(102, 187, 106, 0.15);
-            padding: 3px 6px;
-            border-radius: 4px;
-            color: #a5d6a7;
-            font-weight: 500;
-        }
-        
-        .details-box {
-            background: rgba(10, 20, 40, 0.5);
-            border-radius: 10px;
-            padding: 20px;
-            margin: 25px 0;
-            border-left: 3px solid #66bb6a;
-        }
-        
-        .details-title {
-            font-size: 1.3rem;
-            margin-bottom: 15px;
-            color: #66bb6a;
-            display: flex;
-            align-items: center;
-        }
-        
-        .details-title i {
-            margin-right: 10px;
-        }
-        
-        .details-list {
-            list-style-type: none;
-        }
-        
-        .details-list li {
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(100, 180, 255, 0.1);
-            display: flex;
-        }
-        
-        .details-list li:last-child {
-            border-bottom: none;
-        }
-        
-        .detail-label {
-            width: 180px;
-            color: #90caf9;
-            font-weight: 500;
-        }
-        
-        .detail-value {
-            flex: 1;
-            color: #e3f2fd;
-        }
-        
-        .button {
-            display: inline-block;
-            background: linear-gradient(45deg, #2e7d32, #388e3c);
-            color: white;
-            padding: 12px 30px;
-            border-radius: 30px;
-            text-decoration: none;
-            font-weight: 600;
-            margin: 10px 5px;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-        }
-        
-        .button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 7px 20px rgba(76, 175, 80, 0.4);
-        }
-        
-        .button.secondary {
-            background: linear-gradient(45deg, #455a64, #607d8b);
-        }
-        
-        .button-group {
-            display: flex;
-            flex-wrap: wrap;
-            margin: 25px 0;
-        }
-        
-        .footer {
-            padding: 25px;
-            text-align: center;
-            background: rgba(10, 20, 40, 0.7);
-            color: #90a4ae;
-            font-size: 0.9rem;
-            border-top: 1px solid rgba(100, 180, 255, 0.1);
-        }
-        
-        .social-links {
-            display: flex;
-            justify-content: center;
-            margin: 15px 0;
-        }
-        
-        .social-links a {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(100, 180, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 8px;
-            color: #66bb6a;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        
-        .social-links a:hover {
-            background: rgba(100, 180, 255, 0.3);
-            transform: translateY(-3px);
-        }
-        
-        /* Animations */
-        @keyframes shine {
-            0% { transform: translateX(-100%) rotate(30deg); }
-            100% { transform: translateX(100%) rotate(30deg); }
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.1); opacity: 0.8; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-        
-        @keyframes twinkle {
-            0% { opacity: 0.2; }
-            50% { opacity: 1; }
-            100% { opacity: 0.2; }
-        }
-        
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            .header {
-                padding: 20px;
-            }
-            
-            .logo-text {
-                font-size: 2rem;
-            }
-            
-            .email-content {
-                padding: 20px;
-            }
-            
-            .email-body {
-                padding: 20px;
-            }
-            
-            .email-header {
-                flex-direction: column;
-                text-align: center;
-            }
-            
-            .email-icon {
-                margin-right: 0;
-                margin-bottom: 15px;
-            }
-            
-            .details-list li {
-                flex-direction: column;
-            }
-            
-            .detail-label {
-                width: 100%;
-                margin-bottom: 5px;
-            }
-            
-            .button-group {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .button {
-                width: 100%;
-                margin: 8px 0;
-                text-align: center;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">
-                <i class="fas fa-rocket logo-icon"></i>
-                <div class="logo-text">CometJet</div>
-            </div>
-            <div class="tagline">Reaching New Heights in Virtual Aviation</div>
-        </div>
-        
-        <div class="email-content">
-            <div class="stars" id="stars-container"></div>
-            
-            <div class="email-body">
-                <div class="email-header">
-                    <div class="email-icon">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <div>
-                        <div class="email-title">Application Accepted!</div>
-                        <div class="email-subtitle">Welcome to CometJet Virtual Airlines ✈️</div>
-                    </div>
-                </div>
-                
-                <div class="email-text">
-                    <p>Dear <span class="highlight"><%= name %></span>,</p>
-                    
-                    <p>We are happy to inform you that you have been accepted as a pilot in CometJet Virtual Airlines. Congratulations! We are sure we are leaving one of our aircraft in good hands.</p>
-                    
-                    <p>The application you sent made a great impression on us. Your enthusiasm and passion for aviation perfectly align with our mission to provide the highest quality virtual flying experience. We're truly excited to have you on board.</p>
-                </div>
-                
-                <div class="details-box p-2">
-                    <div class="details-title">
-                        <i class="fas fa-plane"></i> Your CometJet Assignment Details
-                    </div>
-                    
-                   <p style="font-size:14px; font-weight:bold; color:#4c8bf5; text-transform:uppercase; border-bottom:2px solid #4c8bf5; display:inline-block; margin:25px 0 10px;">📋 Your registrations</p>
 
-                <% aircrafts.forEach((aircraft, index) => { %>
-                  <table width="100%" cellpadding="10" cellspacing="0" style="background-color:#232a47; border-left:4px solid #4c8bf5; margin-bottom:15px;">
-                    <tr>
-                      <td style="font-size:14px; line-height:1.5;">
-                        <p style="margin:5; color:#e0e7ff;"><strong>Aircraft <%= index+1 %>:</strong> <%= aircraft.name %></p>
-                        <p style="margin:5; color:#e0e7ff;"><strong>Registration <%= index+1 %>:</strong> <%= aircraft.registration %></p>
-                      </td>
-                    </tr>
-                  </table>
-                <% }); %>
-                    
-                    <p class="email-text" style="margin-top: 15px;">
-                        <i class="fas fa-info-circle"></i>🛈︎ All assigned aircraft are currently based at our main HUB, Katowice Airport (EPKT).<br>
-                        <i class="fas fa-star text-sm italic"></i> If you have been assigned an Airbus A380, it is located at our secondary hub - London Gatwick (EGKK).
-                    </p>
-                </div>
-                
-                <div class="email-text">
-                    <p><b>You are kindly requested to fly only your assigned aircraft using the provided registrations.</b></p>
-                    
-                    <p>To begin flying and logging flights for CometJet, make sure to join our airline on Newsky:</p>
-                </div>
-                
-                <div class="button-group">
-                    ✨<a href="https://newsky.app/airline/CMT/info" class="button"><i class="fas fa-paper-plane"></i> Join on Newsky</a>
-                </div>
-                
-                <div class="email-text">
-                    <p>Before your first flight, we highly recommend that you:</p>
-                    <ul style="padding-left: 25px; margin: 15px 0;">
-                        <li>Read our <a href="https://comet-jet-site.vercel.app/sop.html">Standard Operating Procedures (SOP)</a></li>
-                        <li>Download the livery for your assigned aircraft - available in the <a href="https://comet-jet-site.vercel.app/livery.html">Liveries (SOP)</a> section of our website using the password: ComJetPlenCP24</li>
-                    </ul>
-                </div>
-                
-                <div class="details-box">
-                    <div class="details-title">
-                        <i class="fas fa-user-astronaut"></i> Pilot Portal Login
-                    </div>
-                    
-                    <ul class="details-list">
-                        <li>
-                            <div class="detail-label">Login Email:</div>
-                            <div class="detail-value"><span class="highlight"><%= email %></span></div>
-                        </li>
-                        <li>
-                            <div class="detail-label">Temporary Password:</div>
-                            <div class="detail-value"><span class="highlight"><%= tempPassword %></span></div>
-                        </li>
-                    </ul>
-                    
-                    <p class="email-text" style="margin-top: 15px;">
-                        <i class="fas fa-key"></i> This is a one-time password - you will be asked to set your own password after logging in for the first time.
-                    </p>
-                    <div class="button-group">
-                    📱<a href="https://comet-jet-site.vercel.app/pilot-dashboard.html" class="button"><i class="fas fa-paper-plane"></i> Pilot Panel</a>
-                </div>
-                </div>
-                
-                <div class="email-text">
-                    <p>We're thrilled to have you flying with us. If you need help or have any questions, don't hesitate to reach out via Discord or email.</p>
-                    
-                    <p class="italic "><b>KayJayKay and Aviaced - CometJet VA CEOs</b></p>
-                </div>
-            </div>
-        </div>
-        
-        <div class="footer">
-            <div class="social-links">
-                <a href="https://dsc.gg/cometjet"><?xml version="1.0"?><!DOCTYPE svg  PUBLIC '-//W3C//DTD SVG 1.1//EN'  'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'><svg enable-background="new 0 0 24 24" height="24px" id="Layer_1" version="1.1" viewBox="0 0 24 24" width="24px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g id="icon"><circle cx="12" cy="11.9975" fill="#8C9EFF" r="11"/><path d="M16.775,8.4375c0,0,-1.3612,-1.0652,-2.9688,-1.1875l-0.1449,0.2897c1.4535,0.3557,2.1203,0.8654,2.8167,1.4915c-1.2009,-0.613,-2.3866,-1.1875,-4.4531,-1.1875s-3.2523,0.5745,-4.4531,1.1875c0.6965,-0.6261,1.4897,-1.192,2.8167,-1.4915l-0.1449,-0.2897C8.5572,7.4094,7.275,8.4375,7.275,8.4375s-1.5203,2.2043,-1.7813,6.5313C7.0262,16.736,9.3531,16.75,9.3531,16.75l0.4866,-0.6487c-0.8259,-0.2871,-1.7587,-0.7998,-2.5647,-1.7263c0.9613,0.7273,2.4121,1.4844,4.75,1.4844s3.7887,-0.757,4.75,-1.4844c-0.806,0.9265,-1.7388,1.4393,-2.5647,1.7263l0.4866,0.6487c0,0,2.3269,-0.014,3.8594,-1.7813C18.2953,10.6418,16.775,8.4375,16.775,8.4375zM10.0953,13.7813c-0.5739,0,-1.0391,-0.5317,-1.0391,-1.1875s0.4652,-1.1875,1.0391,-1.1875c0.5739,0,1.0391,0.5317,1.0391,1.1875S10.6692,13.7813,10.0953,13.7813zM13.9547,13.7813c-0.5739,0,-1.0391,-0.5317,-1.0391,-1.1875s0.4652,-1.1875,1.0391,-1.1875c0.5739,0,1.0391,0.5317,1.0391,1.1875S14.5285,13.7813,13.9547,13.7813z" fill="#FFFFFF"/><path d="M4.2218,19.7782C6.2124,21.7688,8.9624,23,12,23c6.0751,0,11,-4.9249,11,-11c0,-3.0376,-1.2312,-5.7876,-3.2218,-7.7782L4.2218,19.7782z" fill="#231F20" opacity="0.1"/></g></svg></a>
-                <a href="https://www.instagram.com/cometjet/"><?xml version="1.0"?><svg id="Layer_1" style="enable-background:new 0 0 1000 1000;" version="1.1" viewBox="0 0 1000 1000" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><style type="text/css">
-	.st0{fill:url(#SVGID_1_);}
-	.st1{fill:#FFFFFF;}
-</style><linearGradient gradientUnits="userSpaceOnUse" id="SVGID_1_" x1="146.4465" x2="853.5535" y1="853.5535" y2="146.4465"><stop offset="0" style="stop-color:#FFD521"/><stop offset="5.510481e-02" style="stop-color:#FFD020"/><stop offset="0.1241" style="stop-color:#FEC01E"/><stop offset="0.2004" style="stop-color:#FCA71B"/><stop offset="0.2821" style="stop-color:#FA8316"/><stop offset="0.3681" style="stop-color:#F85510"/><stop offset="0.4563" style="stop-color:#F51E09"/><stop offset="0.5" style="stop-color:#F30005"/><stop offset="0.5035" style="stop-color:#F20007"/><stop offset="0.5966" style="stop-color:#E1003B"/><stop offset="0.6879" style="stop-color:#D30067"/><stop offset="0.7757" style="stop-color:#C70088"/><stop offset="0.8589" style="stop-color:#BF00A0"/><stop offset="0.9357" style="stop-color:#BB00AF"/><stop offset="1" style="stop-color:#B900B4"/></linearGradient><path class="st0" d="M500,1000L500,1000C223.9,1000,0,776.1,0,500v0C0,223.9,223.9,0,500,0h0c276.1,0,500,223.9,500,500v0  C1000,776.1,776.1,1000,500,1000z"/><g><path class="st1" d="M500,220.2c91.1,0,101.9,0.3,137.9,2c33.3,1.5,51.4,7.1,63.4,11.8c15.9,6.2,27.3,13.6,39.2,25.5   c11.9,11.9,19.3,23.3,25.5,39.2c4.7,12,10.2,30.1,11.8,63.4c1.6,36,2,46.8,2,137.9s-0.3,101.9-2,137.9   c-1.5,33.3-7.1,51.4-11.8,63.4c-6.2,15.9-13.6,27.3-25.5,39.2c-11.9,11.9-23.3,19.3-39.2,25.5c-12,4.7-30.1,10.2-63.4,11.8   c-36,1.6-46.8,2-137.9,2s-101.9-0.3-137.9-2c-33.3-1.5-51.4-7.1-63.4-11.8c-15.9-6.2-27.3-13.6-39.2-25.5   c-11.9-11.9-19.3-23.3-25.5-39.2c-4.7-12-10.2-30.1-11.8-63.4c-1.6-36-2-46.8-2-137.9s0.3-101.9,2-137.9   c1.5-33.3,7.1-51.4,11.8-63.4c6.2-15.9,13.6-27.3,25.5-39.2c11.9-11.9,23.3-19.3,39.2-25.5c12-4.7,30.1-10.2,63.4-11.8   C398.1,220.5,408.9,220.2,500,220.2 M500,158.7c-92.7,0-104.3,0.4-140.7,2.1c-36.3,1.7-61.1,7.4-82.9,15.9   C254,185.3,234.9,197,216,216c-19,19-30.6,38-39.4,60.5c-8.4,21.7-14.2,46.5-15.9,82.9c-1.7,36.4-2.1,48-2.1,140.7   c0,92.7,0.4,104.3,2.1,140.7c1.7,36.3,7.4,61.1,15.9,82.9C185.3,746,197,765.1,216,784c19,19,38,30.6,60.5,39.4   c21.7,8.4,46.5,14.2,82.9,15.9c36.4,1.7,48,2.1,140.7,2.1s104.3-0.4,140.7-2.1c36.3-1.7,61.1-7.4,82.9-15.9   C746,814.7,765.1,803,784,784c19-19,30.6-38,39.4-60.5c8.4-21.7,14.2-46.5,15.9-82.9c1.7-36.4,2.1-48,2.1-140.7   s-0.4-104.3-2.1-140.7c-1.7-36.3-7.4-61.1-15.9-82.9C814.7,254,803,234.9,784,216c-19-19-38-30.6-60.5-39.4   c-21.7-8.4-46.5-14.2-82.9-15.9C604.3,159.1,592.7,158.7,500,158.7L500,158.7z"/><path class="st1" d="M500,324.7c-96.8,0-175.3,78.5-175.3,175.3S403.2,675.3,500,675.3S675.3,596.8,675.3,500   S596.8,324.7,500,324.7z M500,613.8c-62.8,0-113.8-50.9-113.8-113.8S437.2,386.2,500,386.2c62.8,0,113.8,50.9,113.8,113.8   S562.8,613.8,500,613.8z"/><circle class="st1" cx="682.2" cy="317.8" r="41"/></g></svg></a>
-                <a href="https://tiktok.com/@cometjet"><?xml version="1.0"?><svg fill="none" height="1080" viewBox="0 0 1080 1080" width="1080" xmlns="http://www.w3.org/2000/svg"><path d="M694.195 431.446C674.949 431.446 656.488 423.783 642.875 410.139C629.262 396.495 621.612 377.987 621.612 358.687C621.612 357.355 621.697 355.843 621.797 354.068C621.813 353.79 621.829 353.504 621.845 353.212C621.96 351.145 622.073 348.813 622.019 346.503C621.917 342.198 621.241 336.454 617.33 332.534C613.544 328.74 607.742 327.662 603.234 327.259C599.613 326.935 595.74 326.99 592.731 327.033C591.826 327.046 590.999 327.057 590.28 327.057C589.561 327.057 588.742 327.046 587.852 327.033C584.92 326.99 581.218 326.936 577.772 327.261C573.4 327.674 567.912 328.785 564.171 332.534C560.26 336.454 559.585 342.198 559.483 346.503C559.428 348.813 559.541 351.145 559.656 353.212C559.672 353.504 559.688 353.789 559.704 354.068C559.804 355.843 559.889 357.355 559.889 358.687V617.884C559.889 632.276 555.631 646.345 547.654 658.311C539.677 670.276 528.34 679.6 515.079 685.106C501.817 690.611 487.225 692.051 473.148 689.245C459.07 686.438 446.137 679.511 435.986 669.336C425.834 659.161 418.919 646.196 416.118 632.08C413.316 617.964 414.754 603.333 420.249 590.036C425.744 576.74 435.049 565.377 446.985 557.384C458.921 549.39 472.953 545.124 487.306 545.124C488.47 545.124 489.753 545.173 491.224 545.228C491.778 545.249 492.359 545.271 492.97 545.291C495.115 545.364 497.512 545.415 499.893 545.297C504.307 545.078 510.146 544.248 514.019 540.367C517.888 536.489 518.684 530.756 518.872 526.402C518.973 524.065 518.906 521.711 518.822 519.608C518.802 519.099 518.781 518.611 518.761 518.142C518.695 516.591 518.637 515.244 518.637 514.026C518.637 513.685 518.638 513.329 518.639 512.96C518.647 509.773 518.657 505.628 518.127 501.677C517.551 497.379 516.223 492.258 512.608 488.634C508.891 484.909 503.65 483.811 499.395 483.423C496.218 483.134 492.751 483.198 489.943 483.25C488.972 483.268 488.08 483.285 487.306 483.285C460.74 483.285 434.772 491.181 412.685 505.972C390.599 520.763 373.386 541.785 363.222 566.379C353.058 590.972 350.399 618.033 355.58 644.14C360.762 670.248 373.551 694.23 392.333 713.055C411.116 731.88 435.047 744.701 461.102 749.895C487.157 755.09 514.164 752.424 538.706 742.235C563.249 732.046 584.224 714.792 598.98 692.658C613.736 670.524 621.612 644.502 621.612 617.884V471.99C643.165 485.982 668.386 493.423 694.208 493.285C695.574 493.286 697.126 493.383 698.958 493.497C699.159 493.51 699.363 493.523 699.571 493.536C701.595 493.661 703.883 493.791 706.15 493.752C710.396 493.68 716.05 493.034 719.968 489.107C723.656 485.41 724.938 479.833 725.493 475.339C726.017 471.108 726.006 466.685 725.999 463.431C725.998 463.06 725.997 462.704 725.997 462.366C725.997 462.025 725.998 461.669 725.999 461.3C726.006 458.109 726.017 453.952 725.487 449.988C724.912 445.681 723.587 440.539 719.968 436.912L716.428 440.444L719.968 436.912C716.243 433.179 710.867 432.058 706.541 431.645C703.168 431.322 699.535 431.376 696.635 431.42C695.743 431.433 694.92 431.446 694.195 431.446Z" fill="black" stroke="url(#paint0_linear)" stroke-width="10"/><rect height="760" rx="380" stroke="url(#paint1_linear)" stroke-width="27" width="760" x="157.5" y="159.5"/><defs><linearGradient gradientUnits="userSpaceOnUse" id="paint0_linear" x1="472.73" x2="630.248" y1="467.006" y2="671.545"><stop offset="0.00225797" stop-color="#45CECC"/><stop offset="1" stop-color="#FC4036"/></linearGradient><linearGradient gradientUnits="userSpaceOnUse" id="paint1_linear" x1="805" x2="166.161" y1="819" y2="96.7619"><stop stop-color="#FF3D33"/><stop offset="1" stop-color="#17F2F2"/></linearGradient></defs></svg></a>
-                <a href="https://www.youtube.com/@cometjet"><?xml version="1.0"?><!DOCTYPE svg  PUBLIC '-//W3C//DTD SVG 1.1//EN'  'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'><svg enable-background="new 0 0 100 100" height="100px" id="Layer_1" version="1.1" viewBox="0 0 100 100" width="100px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g><path d="M50.872,44.545c-0.825-0.475-1.662-0.915-2.442-1.464c-0.747-0.525-1.396-1.05-2.148-1.562   C45.881,41.246,45,40.978,45,40.716c0,0.386,0,1.934,0,2.148c0,1.239-0.094,7.613-0.08,8.412c0.02,1.337-0.084,2.674-0.035,4.011   c0.046,1.275,0.054,2.493,0.01,3.825c0,0,3.185-1.547,3.61-1.814c1.634-1.029,3.235-2.146,4.909-3.102   c0.823-0.47,1.674-0.886,2.46-1.417c0.714-0.485,3.481-2.812,3.577-2.753c-1.278-0.781-2.517-1.598-3.849-2.289   C53.898,46.853,52.532,45.5,50.872,44.545z" fill="#C12025"/><path d="M50,3.84C24.506,3.84,3.84,24.506,3.84,50S24.506,96.16,50,96.16S96.16,75.494,96.16,50   S75.494,3.84,50,3.84z M75.354,60.014c-0.477,2.246-1.078,4.595-2.618,6.369c-1.671,1.922-4.549,1.416-6.848,1.582   c-5.589,0.404-11.166,0.026-16.759,0.173c-2.299,0.061-4.566,0.008-6.859-0.106c-2.282-0.114-4.669,0.13-6.95-0.054   c-1.384-0.113-2.777-0.116-4.156-0.286c-1.106-0.136-2.778-0.297-3.615-1.133c-0.407-0.406-0.54-1.037-0.893-1.511l-0.509-0.888   c-2.191-4.672-2.147-9.816-2.156-14.92c-0.005-1.896,0.225-3.782,0.174-5.68c-0.033-1.225,0.523-2.385,0.599-3.618   c0.078-1.236,0.311-2.427,0.909-3.5c1.164-2.087,1.753-3.067,3.916-3.952c1.083-0.444,3.101-0.568,4.261-0.546   c1.381,0.024,2.765,0.018,4.144,0.002c2.804-0.034,5.604-0.117,8.407-0.108c2.438,0.007,4.907,0.019,7.339,0.171   c2.435,0.15,4.88-0.083,7.322-0.021c2.012,0.051,4.028,0.047,6.036,0.195c1.503,0.111,3.255,0.294,4.561,1.129   c0.784,0.501,1.656,1.17,2.009,1.992c1.026,2.389,1.88,4.808,2.024,7.422c0.148,2.678,0.182,5.36,0.255,8.04   c0.013,0.462,0.027,0.925,0.042,1.387C76.078,54.78,75.897,57.441,75.354,60.014z" fill="#C12025"/></g></svg></a>
-<a href="https://www.facebook.com/profile.php?id=61566168421221"><?xml version="1.0"?><!DOCTYPE svg  PUBLIC '-//W3C//DTD SVG 1.1//EN'  'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'><svg height="100%" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;" version="1.1" viewBox="0 0 512 512" width="100%" xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:serif="http://www.serif.com/" xmlns:xlink="http://www.w3.org/1999/xlink"><g><path d="M512,256c0,-141.385 -114.615,-256 -256,-256c-141.385,0 -256,114.615 -256,256c0,127.777 93.616,233.685 216,252.89l0,-178.89l-65,0l0,-74l65,0l0,-56.4c0,-64.16 38.219,-99.6 96.695,-99.6c28.009,0 57.305,5 57.305,5l0,63l-32.281,0c-31.801,0 -41.719,19.733 -41.719,39.978l0,48.022l71,0l-11.35,74l-59.65,0l0,178.89c122.385,-19.205 216,-125.113 216,-252.89Z" style="fill:#1877f2;fill-rule:nonzero;"/><path d="M355.65,330l11.35,-74l-71,0l0,-48.022c0,-20.245 9.917,-39.978 41.719,-39.978l32.281,0l0,-63c0,0 -29.297,-5 -57.305,-5c-58.476,0 -96.695,35.44 -96.695,99.6l0,56.4l-65,0l0,74l65,0l0,178.89c13.033,2.045 26.392,3.11 40,3.11c13.608,0 26.966,-1.065 40,-3.11l0,-178.89l59.65,0Z" style="fill:#fff;fill-rule:nonzero;"/></g></svg></a>
-            <a href="https://comet-jet-site.vercel.app/"><img src="https://imgur.com/a/Ty6N19D" alt="logo"></a>
-</div>
-            <p>CometJet Virtual Airlines &copy; 2025</p>
-       
-        </div>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CometJet - Application Accepted</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #0a0e17, #1a2138);
+      color: #e0f0ff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      width: 100%;
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 15px 50px rgba(0, 10, 30, 0.8);
+      position: relative;
+      border: 1px solid rgba(80, 150, 255, 0.2);
+    }
+
+    .header {
+      background: linear-gradient(120deg, #00172d, #003153, #0a3366);
+      padding: 30px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      border-bottom: 2px solid rgba(100, 180, 255, 0.3);
+    }
+
+    .header::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+      animation: shine 8s infinite linear;
+      transform: rotate(30deg);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 15px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .logo-icon {
+      font-size: 2.5rem;
+      color: #66bb6a;
+      margin-right: 15px;
+      animation: pulse 2s infinite;
+    }
+
+    .logo-text {
+      font-size: 2.8rem;
+      font-weight: 800;
+      background: linear-gradient(45deg, #66bb6a, #81c784, #a5d6a7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 20px rgba(102, 187, 106, 0.3);
+    }
+
+    .tagline {
+      font-size: 1.1rem;
+      color: #bbdefb;
+      letter-spacing: 1px;
+      margin-top: 5px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .email-content {
+      padding: 30px;
+      position: relative;
+    }
+
+    .stars {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .star {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      animation: twinkle var(--duration) infinite ease-in-out;
+    }
+
+    .email-body {
+      position: relative;
+      z-index: 10;
+      background: rgba(15, 25, 45, 0.6);
+      border-radius: 15px;
+      padding: 30px;
+      border: 1px solid rgba(100, 180, 255, 0.1);
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .email-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 25px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(100, 180, 255, 0.2);
+    }
+
+    .email-icon {
+      font-size: 2.5rem;
+      width: 70px;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      margin-right: 20px;
+    }
+
+    .email-icon {
+      background: rgba(102, 187, 106, 0.2);
+      color: #66bb6a;
+      border: 2px solid rgba(102, 187, 106, 0.4);
+    }
+
+    .email-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .email-subtitle {
+      color: #bbdefb;
+      font-size: 1.1rem;
+    }
+
+    .email-text {
+      line-height: 1.8;
+      margin-bottom: 25px;
+      color: #e3f2fd;
+    }
+
+    .email-text p {
+      margin-bottom: 15px;
+    }
+
+    .highlight {
+      background: rgba(102, 187, 106, 0.15);
+      padding: 3px 6px;
+      border-radius: 4px;
+      color: #a5d6a7;
+      font-weight: 500;
+    }
+
+    .details-box {
+      background: rgba(10, 20, 40, 0.5);
+      border-radius: 10px;
+      padding: 20px;
+      margin: 25px 0;
+      border-left: 3px solid #66bb6a;
+    }
+
+    .details-title {
+      font-size: 1.3rem;
+      margin-bottom: 15px;
+      color: #66bb6a;
+      display: flex;
+      align-items: center;
+    }
+
+    .details-title i {
+      margin-right: 10px;
+    }
+
+    .details-list {
+      list-style-type: none;
+    }
+
+    .details-list li {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(100, 180, 255, 0.1);
+      display: flex;
+    }
+
+    .details-list li:last-child {
+      border-bottom: none;
+    }
+
+    .detail-label {
+      width: 180px;
+      color: #90caf9;
+      font-weight: 500;
+    }
+
+    .detail-value {
+      flex: 1;
+      color: #e3f2fd;
+    }
+
+    .button {
+      display: inline-block;
+      background: linear-gradient(45deg, #2e7d32, #388e3c);
+      color: white;
+      padding: 12px 30px;
+      border-radius: 30px;
+      text-decoration: none;
+      font-weight: 600;
+      margin: 10px 5px;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+    }
+
+    .button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 7px 20px rgba(76, 175, 80, 0.4);
+    }
+
+    .button.secondary {
+      background: linear-gradient(45deg, #455a64, #607d8b);
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      margin: 25px 0;
+    }
+
+    .footer {
+      padding: 25px;
+      text-align: center;
+      background: rgba(10, 20, 40, 0.7);
+      color: #90a4ae;
+      font-size: 0.9rem;
+      border-top: 1px solid rgba(100, 180, 255, 0.1);
+    }
+
+    .social-links {
+      display: flex;
+      justify-content: center;
+      margin: 15px 0;
+    }
+
+    .social-links a {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(100, 180, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 8px;
+      color: #66bb6a;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+
+    .social-links a:hover {
+      background: rgba(100, 180, 255, 0.3);
+      transform: translateY(-3px);
+    }
+
+    /* Animations */
+    @keyframes shine {
+      0% {
+        transform: translateX(-100%) rotate(30deg);
+      }
+
+      100% {
+        transform: translateX(100%) rotate(30deg);
+      }
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes twinkle {
+      0% {
+        opacity: 0.2;
+      }
+
+      50% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0.2;
+      }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .header {
+        padding: 20px;
+      }
+
+      .logo-text {
+        font-size: 2rem;
+      }
+
+      .email-content {
+        padding: 20px;
+      }
+
+      .email-body {
+        padding: 20px;
+      }
+
+      .email-header {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .email-icon {
+        margin-right: 0;
+        margin-bottom: 15px;
+      }
+
+      .details-list li {
+        flex-direction: column;
+      }
+
+      .detail-label {
+        width: 100%;
+        margin-bottom: 5px;
+      }
+
+      .button-group {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .button {
+        width: 100%;
+        margin: 8px 0;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">
+        <i class="fas fa-rocket logo-icon"></i>
+        <div class="logo-text">CometJet</div>
+      </div>
+      <div class="tagline">Reaching New Heights in Virtual Aviation</div>
     </div>
 
-    <script>
-        // Create stars for background
-        function createStars() {
-            const container = document.getElementById('stars-container');
-            const starCount = 100;
-            
-            for (let i = 0; i < starCount; i++) {
-                const star = document.createElement('div');
-                star.classList.add('star');
-                
-                // Random position
-                const posX = Math.random() * 100;
-                const posY = Math.random() * 100;
-                star.style.left = `${posX}%`;
-                star.style.top = `${posY}%`;
-                
-                // Random size
-                const size = Math.random() * 3 + 1;
-                star.style.width = `${size}px`;
-                star.style.height = `${size}px`;
-                
-                // Random opacity and animation duration
-                star.style.opacity = Math.random() * 0.5 + 0.1;
-                star.style.setProperty('--duration', `${Math.random() * 5 + 3}s`);
-                
-                container.appendChild(star);
-            }
-        }
-        
-        // Initialize stars on page load
-        window.addEventListener('load', createStars);
-    </script>
-</body>
-</html>
+    <div class="email-content">
+      <div class="stars" id="stars-container"></div>
 
+      <div class="email-body">
+        <div class="email-header">
+          <div class="email-icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div>
+            <div class="email-title">Application Accepted!</div>
+            <div class="email-subtitle">Welcome to CometJet Virtual Airlines ✈️</div>
+          </div>
+        </div>
+
+        <div class="email-text">
+          <p>Dear <span class="highlight">
+              <%= name %>
+            </span>,</p>
+
+          <p>We are happy to inform you that you have been accepted as a pilot in CometJet Virtual Airlines.
+            Congratulations! We are sure we are leaving one of our aircraft in good hands.</p>
+
+          <p>The application you sent made a great impression on us. Your enthusiasm and passion for aviation perfectly
+            align with our mission to provide the highest quality virtual flying experience. We're truly excited to have
+            you on board.</p>
+        </div>
+
+        <div class="details-box p-2">
+          <div class="details-title">
+            <i class="fas fa-plane"></i> Your CometJet Assignment Details
+          </div>
+
+          <p
+            style="font-size:14px; font-weight:bold; color:#4c8bf5; text-transform:uppercase; border-bottom:2px solid #4c8bf5; display:inline-block; margin:25px 0 10px;">
+            📋 Your registrations</p>
+
+          <% aircrafts.forEach((aircraft, index)=> { %>
+            <table width="100%" cellpadding="10" cellspacing="0"
+              style="background-color:#232a47; border-left:4px solid #4c8bf5; margin-bottom:15px;">
+              <tr>
+                <td style="font-size:14px; line-height:1.5;">
+                  <p style="margin:5; color:#e0e7ff;"><strong>Aircraft <%= index+1 %>:</strong>
+                    <%= aircraft.name %>
+                  </p>
+                  <p style="margin:5; color:#e0e7ff;"><strong>Registration <%= index+1 %>:</strong>
+                    <%= aircraft.registration %>
+                  </p>
+                </td>
+              </tr>
+            </table>
+            <% }); %>
+
+              <p class="email-text" style="margin-top: 15px;">
+                <i class="fas fa-info-circle"></i>🛈︎ All assigned aircraft are currently based at our main HUB,
+                Katowice Airport (EPKT).<br>
+                <i class="fas fa-star text-sm italic"></i> If you have been assigned an Airbus A380, it is located at
+                our secondary hub - London Gatwick (EGKK).
+              </p>
+        </div>
+
+        <div class="email-text">
+          <p><b>You are kindly requested to fly only your assigned aircraft using the provided registrations.</b></p>
+
+          <p>To begin flying and logging flights for CometJet, make sure to join our airline on Newsky:</p>
+        </div>
+
+        <div class="button-group">
+          ✨<a href="https://newsky.app/airline/CMT/info" class="button"><i class="fas fa-paper-plane"></i> Join on
+            Newsky</a>
+        </div>
+
+        <div class="email-text">
+          <p>Before your first flight, we highly recommend that you:</p>
+          <ul style="padding-left: 25px; margin: 15px 0;">
+            <li>Read our <a href="https://comet-jet-site.vercel.app/sop.html">Standard Operating Procedures (SOP)</a>
+            </li>
+            <li>Download the livery for your assigned aircraft - available in the <a
+                href="https://comet-jet-site.vercel.app/livery.html">Liveries (SOP)</a> section of our website using the
+              password: ComJetPlenCP24</li>
+          </ul>
+        </div>
+
+        <div class="details-box">
+          <div class="details-title">
+            <i class="fas fa-user-astronaut"></i> Pilot Portal Login
+          </div>
+
+          <ul class="details-list">
+            <li>
+              <div class="detail-label">Login Email:</div>
+              <div class="detail-value"><span class="highlight">
+                  <%= email %>
+                </span></div>
+            </li>
+            <li>
+              <div class="detail-label">Temporary Password:</div>
+              <div class="detail-value"><span class="highlight">
+                  <%= tempPassword %>
+                </span></div>
+            </li>
+          </ul>
+
+          <p class="email-text" style="margin-top: 15px;">
+            <i class="fas fa-key"></i> This is a one-time password - you will be asked to set your own password after
+            logging in for the first time.
+          </p>
+          <div class="button-group">
+            📱<a href="https://comet-jet-site.vercel.app/pilot-dashboard.html" class="button"><i
+                class="fas fa-paper-plane"></i> Pilot Panel</a>
+          </div>
+        </div>
+
+        <div class="email-text">
+          <p>We're thrilled to have you flying with us. If you need help or have any questions, don't hesitate to reach
+            out via Discord or email.</p>
+
+          <p class="italic "><b>KayJayKay and Aviaced - CometJet VA CEOs</b></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="social-links">
+        <a href="https://dsc.gg/cometjet">
+          <?xml version="1.0"?>
+          <!DOCTYPE svg PUBLIC '-//W3C//DTD SVG 1.1//EN' 'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'><svg
+            enable-background="new 0 0 24 24" height="24px" id="Layer_1" version="1.1" viewBox="0 0 24 24" width="24px"
+            xml:space="preserve" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+            <g id="icon">
+              <circle cx="12" cy="11.9975" fill="#8C9EFF" r="11" />
+              <path
+                d="M16.775,8.4375c0,0,-1.3612,-1.0652,-2.9688,-1.1875l-0.1449,0.2897c1.4535,0.3557,2.1203,0.8654,2.8167,1.4915c-1.2009,-0.613,-2.3866,-1.1875,-4.4531,-1.1875s-3.2523,0.5745,-4.4531,1.1875c0.6965,-0.6261,1.4897,-1.192,2.8167,-1.4915l-0.1449,-0.2897C8.5572,7.4094,7.275,8.4375,7.275,8.4375s-1.5203,2.2043,-1.7813,6.5313C7.0262,16.736,9.3531,16.75,9.3531,16.75l0.4866,-0.6487c-0.8259,-0.2871,-1.7587,-0.7998,-2.5647,-1.7263c0.9613,0.7273,2.4121,1.4844,4.75,1.4844s3.7887,-0.757,4.75,-1.4844c-0.806,0.9265,-1.7388,1.4393,-2.5647,1.7263l0.4866,0.6487c0,0,2.3269,-0.014,3.8594,-1.7813C18.2953,10.6418,16.775,8.4375,16.775,8.4375zM10.0953,13.7813c-0.5739,0,-1.0391,-0.5317,-1.0391,-1.1875s0.4652,-1.1875,1.0391,-1.1875c0.5739,0,1.0391,0.5317,1.0391,1.1875S10.6692,13.7813,10.0953,13.7813zM13.9547,13.7813c-0.5739,0,-1.0391,-0.5317,-1.0391,-1.1875s0.4652,-1.1875,1.0391,-1.1875c0.5739,0,1.0391,0.5317,1.0391,1.1875S14.5285,13.7813,13.9547,13.7813z"
+                fill="#FFFFFF" />
+              <path
+                d="M4.2218,19.7782C6.2124,21.7688,8.9624,23,12,23c6.0751,0,11,-4.9249,11,-11c0,-3.0376,-1.2312,-5.7876,-3.2218,-7.7782L4.2218,19.7782z"
+                fill="#231F20" opacity="0.1" />
+            </g>
+          </svg>
+        </a>
+        <a href="https://www.instagram.com/cometjet/">
+          <?xml version="1.0"?><svg id="Layer_1" style="enable-background:new 0 0 1000 1000;" version="1.1"
+            viewBox="0 0 1000 1000" xml:space="preserve" xmlns="http://www.w3.org/2000/svg"
+            xmlns:xlink="http://www.w3.org/1999/xlink">
+            <style type="text/css">
+              .st0 {
+                fill: url(#SVGID_1_);
+              }
+
+              .st1 {
+                fill: #FFFFFF;
+              }
+            </style>
+            <linearGradient gradientUnits="userSpaceOnUse" id="SVGID_1_" x1="146.4465" x2="853.5535" y1="853.5535"
+              y2="146.4465">
+              <stop offset="0" style="stop-color:#FFD521" />
+              <stop offset="5.510481e-02" style="stop-color:#FFD020" />
+              <stop offset="0.1241" style="stop-color:#FEC01E" />
+              <stop offset="0.2004" style="stop-color:#FCA71B" />
+              <stop offset="0.2821" style="stop-color:#FA8316" />
+              <stop offset="0.3681" style="stop-color:#F85510" />
+              <stop offset="0.4563" style="stop-color:#F51E09" />
+              <stop offset="0.5" style="stop-color:#F30005" />
+              <stop offset="0.5035" style="stop-color:#F20007" />
+              <stop offset="0.5966" style="stop-color:#E1003B" />
+              <stop offset="0.6879" style="stop-color:#D30067" />
+              <stop offset="0.7757" style="stop-color:#C70088" />
+              <stop offset="0.8589" style="stop-color:#BF00A0" />
+              <stop offset="0.9357" style="stop-color:#BB00AF" />
+              <stop offset="1" style="stop-color:#B900B4" />
+            </linearGradient>
+            <path class="st0"
+              d="M500,1000L500,1000C223.9,1000,0,776.1,0,500v0C0,223.9,223.9,0,500,0h0c276.1,0,500,223.9,500,500v0  C1000,776.1,776.1,1000,500,1000z" />
+            <g>
+              <path class="st1"
+                d="M500,220.2c91.1,0,101.9,0.3,137.9,2c33.3,1.5,51.4,7.1,63.4,11.8c15.9,6.2,27.3,13.6,39.2,25.5   c11.9,11.9,19.3,23.3,25.5,39.2c4.7,12,10.2,30.1,11.8,63.4c1.6,36,2,46.8,2,137.9s-0.3,101.9-2,137.9   c-1.5,33.3-7.1,51.4-11.8,63.4c-6.2,15.9-13.6,27.3-25.5,39.2c-11.9,11.9-23.3,19.3-39.2,25.5c-12,4.7-30.1,10.2-63.4,11.8   c-36,1.6-46.8,2-137.9,2s-101.9-0.3-137.9-2c-33.3-1.5-51.4-7.1-63.4-11.8c-15.9-6.2-27.3-13.6-39.2-25.5   c-11.9-11.9-19.3-23.3-25.5-39.2c-4.7-12-10.2-30.1-11.8-63.4c-1.6-36-2-46.8-2-137.9s0.3-101.9,2-137.9   c1.5-33.3,7.1-51.4,11.8-63.4c6.2-15.9,13.6-27.3,25.5-39.2c11.9-11.9,23.3-19.3,39.2-25.5c12-4.7,30.1-10.2,63.4-11.8   C398.1,220.5,408.9,220.2,500,220.2 M500,158.7c-92.7,0-104.3,0.4-140.7,2.1c-36.3,1.7-61.1,7.4-82.9,15.9   C254,185.3,234.9,197,216,216c-19,19-30.6,38-39.4,60.5c-8.4,21.7-14.2,46.5-15.9,82.9c-1.7,36.4-2.1,48-2.1,140.7   c0,92.7,0.4,104.3,2.1,140.7c1.7,36.3,7.4,61.1,15.9,82.9C185.3,746,197,765.1,216,784c19,19,38,30.6,60.5,39.4   c21.7,8.4,46.5,14.2,82.9,15.9c36.4,1.7,48,2.1,140.7,2.1s104.3-0.4,140.7-2.1c36.3-1.7,61.1-7.4,82.9-15.9   C746,814.7,765.1,803,784,784c19-19,30.6-38,39.4-60.5c8.4-21.7,14.2-46.5,15.9-82.9c1.7-36.4,2.1-48,2.1-140.7   s-0.4-104.3-2.1-140.7c-1.7-36.3-7.4-61.1-15.9-82.9C814.7,254,803,234.9,784,216c-19-19-38-30.6-60.5-39.4   c-21.7-8.4-46.5-14.2-82.9-15.9C604.3,159.1,592.7,158.7,500,158.7L500,158.7z" />
+              <path class="st1"
+                d="M500,324.7c-96.8,0-175.3,78.5-175.3,175.3S403.2,675.3,500,675.3S675.3,596.8,675.3,500   S596.8,324.7,500,324.7z M500,613.8c-62.8,0-113.8-50.9-113.8-113.8S437.2,386.2,500,386.2c62.8,0,113.8,50.9,113.8,113.8   S562.8,613.8,500,613.8z" />
+              <circle class="st1" cx="682.2" cy="317.8" r="41" />
+            </g>
+          </svg>
+        </a>
+        <a href="https://tiktok.com/@cometjet">
+          <?xml version="1.0"?><svg fill="none" height="1080" viewBox="0 0 1080 1080" width="1080"
+            xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M694.195 431.446C674.949 431.446 656.488 423.783 642.875 410.139C629.262 396.495 621.612 377.987 621.612 358.687C621.612 357.355 621.697 355.843 621.797 354.068C621.813 353.79 621.829 353.504 621.845 353.212C621.96 351.145 622.073 348.813 622.019 346.503C621.917 342.198 621.241 336.454 617.33 332.534C613.544 328.74 607.742 327.662 603.234 327.259C599.613 326.935 595.74 326.99 592.731 327.033C591.826 327.046 590.999 327.057 590.28 327.057C589.561 327.057 588.742 327.046 587.852 327.033C584.92 326.99 581.218 326.936 577.772 327.261C573.4 327.674 567.912 328.785 564.171 332.534C560.26 336.454 559.585 342.198 559.483 346.503C559.428 348.813 559.541 351.145 559.656 353.212C559.672 353.504 559.688 353.789 559.704 354.068C559.804 355.843 559.889 357.355 559.889 358.687V617.884C559.889 632.276 555.631 646.345 547.654 658.311C539.677 670.276 528.34 679.6 515.079 685.106C501.817 690.611 487.225 692.051 473.148 689.245C459.07 686.438 446.137 679.511 435.986 669.336C425.834 659.161 418.919 646.196 416.118 632.08C413.316 617.964 414.754 603.333 420.249 590.036C425.744 576.74 435.049 565.377 446.985 557.384C458.921 549.39 472.953 545.124 487.306 545.124C488.47 545.124 489.753 545.173 491.224 545.228C491.778 545.249 492.359 545.271 492.97 545.291C495.115 545.364 497.512 545.415 499.893 545.297C504.307 545.078 510.146 544.248 514.019 540.367C517.888 536.489 518.684 530.756 518.872 526.402C518.973 524.065 518.906 521.711 518.822 519.608C518.802 519.099 518.781 518.611 518.761 518.142C518.695 516.591 518.637 515.244 518.637 514.026C518.637 513.685 518.638 513.329 518.639 512.96C518.647 509.773 518.657 505.628 518.127 501.677C517.551 497.379 516.223 492.258 512.608 488.634C508.891 484.909 503.65 483.811 499.395 483.423C496.218 483.134 492.751 483.198 489.943 483.25C488.972 483.268 488.08 483.285 487.306 483.285C460.74 483.285 434.772 491.181 412.685 505.972C390.599 520.763 373.386 541.785 363.222 566.379C353.058 590.972 350.399 618.033 355.58 644.14C360.762 670.248 373.551 694.23 392.333 713.055C411.116 731.88 435.047 744.701 461.102 749.895C487.157 755.09 514.164 752.424 538.706 742.235C563.249 732.046 584.224 714.792 598.98 692.658C613.736 670.524 621.612 644.502 621.612 617.884V471.99C643.165 485.982 668.386 493.423 694.208 493.285C695.574 493.286 697.126 493.383 698.958 493.497C699.159 493.51 699.363 493.523 699.571 493.536C701.595 493.661 703.883 493.791 706.15 493.752C710.396 493.68 716.05 493.034 719.968 489.107C723.656 485.41 724.938 479.833 725.493 475.339C726.017 471.108 726.006 466.685 725.999 463.431C725.998 463.06 725.997 462.704 725.997 462.366C725.997 462.025 725.998 461.669 725.999 461.3C726.006 458.109 726.017 453.952 725.487 449.988C724.912 445.681 723.587 440.539 719.968 436.912L716.428 440.444L719.968 436.912C716.243 433.179 710.867 432.058 706.541 431.645C703.168 431.322 699.535 431.376 696.635 431.42C695.743 431.433 694.92 431.446 694.195 431.446Z"
+              fill="black" stroke="url(#paint0_linear)" stroke-width="10" />
+            <rect height="760" rx="380" stroke="url(#paint1_linear)" stroke-width="27" width="760" x="157.5"
+              y="159.5" />
+            <defs>
+              <linearGradient gradientUnits="userSpaceOnUse" id="paint0_linear" x1="472.73" x2="630.248" y1="467.006"
+                y2="671.545">
+                <stop offset="0.00225797" stop-color="#45CECC" />
+                <stop offset="1" stop-color="#FC4036" />
+              </linearGradient>
+              <linearGradient gradientUnits="userSpaceOnUse" id="paint1_linear" x1="805" x2="166.161" y1="819"
+                y2="96.7619">
+                <stop stop-color="#FF3D33" />
+                <stop offset="1" stop-color="#17F2F2" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </a>
+        <a href="https://www.youtube.com/@cometjet">
+          <?xml version="1.0"?>
+          <!DOCTYPE svg PUBLIC '-//W3C//DTD SVG 1.1//EN' 'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'><svg
+            enable-background="new 0 0 100 100" height="100px" id="Layer_1" version="1.1" viewBox="0 0 100 100"
+            width="100px" xml:space="preserve" xmlns="http://www.w3.org/2000/svg"
+            xmlns:xlink="http://www.w3.org/1999/xlink">
+            <g>
+              <path
+                d="M50.872,44.545c-0.825-0.475-1.662-0.915-2.442-1.464c-0.747-0.525-1.396-1.05-2.148-1.562   C45.881,41.246,45,40.978,45,40.716c0,0.386,0,1.934,0,2.148c0,1.239-0.094,7.613-0.08,8.412c0.02,1.337-0.084,2.674-0.035,4.011   c0.046,1.275,0.054,2.493,0.01,3.825c0,0,3.185-1.547,3.61-1.814c1.634-1.029,3.235-2.146,4.909-3.102   c0.823-0.47,1.674-0.886,2.46-1.417c0.714-0.485,3.481-2.812,3.577-2.753c-1.278-0.781-2.517-1.598-3.849-2.289   C53.898,46.853,52.532,45.5,50.872,44.545z"
+                fill="#C12025" />
+              <path
+                d="M50,3.84C24.506,3.84,3.84,24.506,3.84,50S24.506,96.16,50,96.16S96.16,75.494,96.16,50   S75.494,3.84,50,3.84z M75.354,60.014c-0.477,2.246-1.078,4.595-2.618,6.369c-1.671,1.922-4.549,1.416-6.848,1.582   c-5.589,0.404-11.166,0.026-16.759,0.173c-2.299,0.061-4.566,0.008-6.859-0.106c-2.282-0.114-4.669,0.13-6.95-0.054   c-1.384-0.113-2.777-0.116-4.156-0.286c-1.106-0.136-2.778-0.297-3.615-1.133c-0.407-0.406-0.54-1.037-0.893-1.511l-0.509-0.888   c-2.191-4.672-2.147-9.816-2.156-14.92c-0.005-1.896,0.225-3.782,0.174-5.68c-0.033-1.225,0.523-2.385,0.599-3.618   c0.078-1.236,0.311-2.427,0.909-3.5c1.164-2.087,1.753-3.067,3.916-3.952c1.083-0.444,3.101-0.568,4.261-0.546   c1.381,0.024,2.765,0.018,4.144,0.002c2.804-0.034,5.604-0.117,8.407-0.108c2.438,0.007,4.907,0.019,7.339,0.171   c2.435,0.15,4.88-0.083,7.322-0.021c2.012,0.051,4.028,0.047,6.036,0.195c1.503,0.111,3.255,0.294,4.561,1.129   c0.784,0.501,1.656,1.17,2.009,1.992c1.026,2.389,1.88,4.808,2.024,7.422c0.148,2.678,0.182,5.36,0.255,8.04   c0.013,0.462,0.027,0.925,0.042,1.387C76.078,54.78,75.897,57.441,75.354,60.014z"
+                fill="#C12025" />
+            </g>
+          </svg>
+        </a>
+        <a href="https://www.facebook.com/profile.php?id=61566168421221">
+          <?xml version="1.0"?>
+          <!DOCTYPE svg PUBLIC '-//W3C//DTD SVG 1.1//EN' 'http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd'><svg
+            height="100%" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"
+            version="1.1" viewBox="0 0 512 512" width="100%" xml:space="preserve" xmlns="http://www.w3.org/2000/svg"
+            xmlns:serif="http://www.serif.com/" xmlns:xlink="http://www.w3.org/1999/xlink">
+            <g>
+              <path
+                d="M512,256c0,-141.385 -114.615,-256 -256,-256c-141.385,0 -256,114.615 -256,256c0,127.777 93.616,233.685 216,252.89l0,-178.89l-65,0l0,-74l65,0l0,-56.4c0,-64.16 38.219,-99.6 96.695,-99.6c28.009,0 57.305,5 57.305,5l0,63l-32.281,0c-31.801,0 -41.719,19.733 -41.719,39.978l0,48.022l71,0l-11.35,74l-59.65,0l0,178.89c122.385,-19.205 216,-125.113 216,-252.89Z"
+                style="fill:#1877f2;fill-rule:nonzero;" />
+              <path
+                d="M355.65,330l11.35,-74l-71,0l0,-48.022c0,-20.245 9.917,-39.978 41.719,-39.978l32.281,0l0,-63c0,0 -29.297,-5 -57.305,-5c-58.476,0 -96.695,35.44 -96.695,99.6l0,56.4l-65,0l0,74l65,0l0,178.89c13.033,2.045 26.392,3.11 40,3.11c13.608,0 26.966,-1.065 40,-3.11l0,-178.89l59.65,0Z"
+                style="fill:#fff;fill-rule:nonzero;" />
+            </g>
+          </svg>
+        </a>
+
+      </div>
+      <a href="https://comet-jet-site.vercel.app/"><img
+          src="https://drive.google.com/file/d/11LYog7n8sNkq0iXUwaJoOombP_9FVxJw/view?usp=sharing" alt="logo"></a>
+      <p>CometJet Virtual Airlines &copy; 2025</p>
+
+    </div>
+  </div>
+
+  <script>
+    // Create stars for background
+    function createStars() {
+      const container = document.getElementById('stars-container');
+      const starCount = 100;
+
+      for (let i = 0; i < starCount; i++) {
+        const star = document.createElement('div');
+        star.classList.add('star');
+
+        // Random position
+        const posX = Math.random() * 100;
+        const posY = Math.random() * 100;
+        star.style.left = `${posX}%`;
+        star.style.top = `${posY}%`;
+
+        // Random size
+        const size = Math.random() * 3 + 1;
+        star.style.width = `${size}px`;
+        star.style.height = `${size}px`;
+
+        // Random opacity and animation duration
+        star.style.opacity = Math.random() * 0.5 + 0.1;
+        star.style.setProperty('--duration', `${Math.random() * 5 + 3}s`);
+
+        container.appendChild(star);
+      }
+    }
+
+    // Initialize stars on page load
+    window.addEventListener('load', createStars);
+  </script>
+</body>
+
+</html>
