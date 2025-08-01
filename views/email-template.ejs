@@ -66,19 +66,19 @@
     }
 
     .logo-icon {
-      font-size: 2.2rem; /* Adjusted size */
-      color: rgb(245, 158, 11); /* Changed to orange */
+      font-size: 2.5rem;
+      color: #66bb6a;
       margin-right: 15px;
       animation: pulse 2s infinite;
     }
 
     .logo-text {
-      font-size: 2.5rem; /* Adjusted size */
+      font-size: 2.8rem;
       font-weight: 800;
-      background: linear-gradient(45deg, rgb(245, 158, 11), rgb(245, 180, 50), rgb(245, 200, 100)); /* Changed to orange gradient */
+      background: linear-gradient(45deg, #66bb6a, #81c784, #a5d6a7);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 20px rgba(245, 158, 11, 0.3); /* Changed to orange */
+      text-shadow: 0 0 20px rgba(102, 187, 106, 0.3);
     }
 
     .tagline {
@@ -93,22 +93,6 @@
     .email-content {
       padding: 30px;
       position: relative;
-    }
-
-    .stars {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-    }
-
-    .star {
-      position: absolute;
-      background: white;
-      border-radius: 50%;
-      animation: twinkle var(--duration) infinite ease-in-out;
     }
 
     .email-body {
@@ -130,17 +114,17 @@
     }
 
     .email-icon {
-      font-size: 2rem; /* Adjusted size */
-      width: 60px; /* Adjusted size */
-      height: 60px; /* Adjusted size */
+      font-size: 2.5rem;
+      width: 70px;
+      height: 70px;
       display: flex;
       align-items: center;
       justify-content: center;
       border-radius: 50%;
       margin-right: 20px;
-      background: rgba(245, 158, 11, 0.2); /* Changed to orange */
-      color: rgb(245, 158, 11); /* Changed to orange */
-      border: 2px solid rgba(245, 158, 11, 0.4); /* Changed to orange */
+      background: rgba(102, 187, 106, 0.2);
+      color: #66bb6a;
+      border: 2px solid rgba(102, 187, 106, 0.4);
     }
 
     .email-title {
@@ -165,10 +149,10 @@
     }
 
     .highlight {
-      background: rgba(245, 158, 11, 0.15); /* Changed to orange */
+      background: rgba(102, 187, 106, 0.15);
       padding: 3px 6px;
       border-radius: 4px;
-      color: rgb(245, 180, 50); /* Changed to light orange */
+      color: #a5d6a7;
       font-weight: 500;
     }
 
@@ -177,13 +161,13 @@
       border-radius: 10px;
       padding: 20px;
       margin: 25px 0;
-      border-left: 3px solid rgb(245, 158, 11); /* Changed to orange */
+      border-left: 3px solid #66bb6a;
     }
 
     .details-title {
       font-size: 1.3rem;
       margin-bottom: 15px;
-      color: rgb(245, 158, 11); /* Changed to orange */
+      color: #66bb6a;
       display: flex;
       align-items: center;
     }
@@ -219,7 +203,7 @@
 
     .button {
       display: inline-block;
-      background: linear-gradient(45deg, rgb(200, 100, 0), rgb(245, 158, 11)); /* Changed to orange gradient */
+      background: linear-gradient(45deg, #2e7d32, #388e3c);
       color: white;
       padding: 12px 30px;
       border-radius: 30px;
@@ -229,12 +213,12 @@
       transition: all 0.3s ease;
       border: none;
       cursor: pointer;
-      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); /* Changed to orange */
+      box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
     }
 
     .button:hover {
       transform: translateY(-3px);
-      box-shadow: 0 7px 20px rgba(245, 158, 11, 0.4); /* Changed to orange */
+      box-shadow: 0 7px 20px rgba(76, 175, 80, 0.4);
     }
 
     .button.secondary {
@@ -263,32 +247,22 @@
     }
 
     .social-links a {
-      width: 36px; /* Normalized size */
-      height: 36px; /* Normalized size */
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       background: rgba(100, 180, 255, 0.1);
       display: flex;
       align-items: center;
       justify-content: center;
       margin: 0 8px;
-      color: rgb(245, 158, 11); /* Changed to orange */
+      color: #66bb6a;
       text-decoration: none;
       transition: all 0.3s ease;
-      font-size: 1.2rem; /* Normalized size */
     }
 
     .social-links a:hover {
-      background: rgba(245, 158, 11, 0.3); /* Changed to orange */
+      background: rgba(100, 180, 255, 0.3);
       transform: translateY(-3px);
-    }
-
-    .footer-logo {
-      display: block;
-      margin: 15px auto;
-      font-size: 1.2rem;
-      font-weight: bold;
-      color: rgb(245, 158, 11); /* Changed to orange */
-      text-decoration: none;
     }
 
     /* Animations */
@@ -316,20 +290,6 @@
       100% {
         transform: scale(1);
         opacity: 1;
-      }
-    }
-
-    @keyframes twinkle {
-      0% {
-        opacity: 0.2;
-      }
-
-      50% {
-        opacity: 1;
-      }
-
-      100% {
-        opacity: 0.2;
       }
     }
 
@@ -386,17 +346,7 @@
 
 <body>
   <div class="container">
-    <div class="header">
-      <div class="logo">
-        <i class="fas fa-rocket logo-icon"></i>
-        <div class="logo-text">CometJet</div>
-      </div>
-      <div class="tagline">Reaching New Heights in Virtual Aviation</div>
-    </div>
-
     <div class="email-content">
-      <div class="stars" id="stars-container"></div>
-
       <div class="email-body">
         <div class="email-header">
           <div class="email-icon">
@@ -428,8 +378,7 @@
 
           <p
             style="font-size:14px; font-weight:bold; color:#4c8bf5; text-transform:uppercase; border-bottom:2px solid #4c8bf5; display:inline-block; margin:25px 0 10px;">
-            <i class="fas fa-clipboard-list"></i> Your registrations
-          </p>
+            📋 Your registrations</p>
 
           <% aircrafts.forEach((aircraft, index)=> { %>
             <table width="100%" cellpadding="10" cellspacing="0"
@@ -448,9 +397,9 @@
             <% }); %>
 
               <p class="email-text" style="margin-top: 15px;">
-                <i class="fas fa-info-circle"></i> All assigned aircraft are currently based at our main HUB,
+                <i class="fas fa-info-circle"></i>🛈︎ All assigned aircraft are currently based at our main HUB,
                 Katowice Airport (EPKT).<br>
-                <i class="fas fa-star"></i> If you have been assigned an Airbus A380, it is located at
+                <i class="fas fa-star text-sm italic"></i> If you have been assigned an Airbus A380, it is located at
                 our secondary hub - London Gatwick (EGKK).
               </p>
         </div>
@@ -462,7 +411,7 @@
         </div>
 
         <div class="button-group">
-          <a href="https://newsky.app/airline/CMT/info" class="button"><i class="fas fa-paper-plane"></i> Join on
+          ✨<a href="https://newsky.app/airline/CMT/info" class="button"><i class="fas fa-paper-plane"></i> Join on
             Newsky</a>
         </div>
 
@@ -472,7 +421,7 @@
             <li>Read our <a href="https://comet-jet-site.vercel.app/sop.html">Standard Operating Procedures (SOP)</a>
             </li>
             <li>Download the livery for your assigned aircraft - available in the <a
-                href="https://comet-jet-site.vercel.app/livery.html">Liveries</a> section of our website using the
+                href="https://comet-jet-site.vercel.app/livery.html">Liveries (SOP)</a> section of our website using the
               password: ComJetPlenCP24</li>
           </ul>
         </div>
@@ -502,7 +451,7 @@
             logging in for the first time.
           </p>
           <div class="button-group">
-            <a href="https://comet-jet-site.vercel.app/pilot-dashboard.html" class="button"><i
+            📱<a href="https://comet-jet-site.vercel.app/pilot-dashboard.html" class="button"><i
                 class="fas fa-paper-plane"></i> Pilot Panel</a>
           </div>
         </div>
@@ -534,43 +483,10 @@
           <i class="fab fa-facebook"></i>
         </a>
       </div>
-      <a href="https://comet-jet-site.vercel.app/" class="footer-logo">CometJet</a>
+      <a href="https://comet-jet-site.vercel.app/">CometJet Virtual Airlines</a>
       <p>CometJet Virtual Airlines &copy; 2025</p>
     </div>
   </div>
-
-  <script>
-    // Create stars for background
-    function createStars() {
-      const container = document.getElementById('stars-container');
-      const starCount = 100;
-
-      for (let i = 0; i < starCount; i++) {
-        const star = document.createElement('div');
-        star.classList.add('star');
-
-        // Random position
-        const posX = Math.random() * 100;
-        const posY = Math.random() * 100;
-        star.style.left = `${posX}%`;
-        star.style.top = `${posY}%`;
-
-        // Random size
-        const size = Math.random() * 3 + 1;
-        star.style.width = `${size}px`;
-        star.style.height = `${size}px`;
-
-        // Random opacity and animation duration
-        star.style.opacity = Math.random() * 0.5 + 0.1;
-        star.style.setProperty('--duration', `${Math.random() * 5 + 3}s`);
-
-        container.appendChild(star);
-      }
-    }
-
-    // Initialize stars on page load
-    window.addEventListener('load', createStars);
-  </script>
 </body>
 
 </html>
