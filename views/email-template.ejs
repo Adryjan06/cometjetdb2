@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CometJet - Application Accepted</title>
   <style>
+    /* Gmail-compatible styles */
     * {
       margin: 0;
       padding: 0;
@@ -13,26 +14,23 @@
     }
 
     body {
-      background: linear-gradient(135deg, #0a0e17, #1a2138);
+      background: #1a2138;
       color: #e0f0ff;
-      min-height: 100vh;
       padding: 20px;
     }
 
     .container {
       max-width: 800px;
       width: 100%;
-      background: rgba(15, 23, 42, 0.9);
-      border-radius: 20px;
+      background: #0f172a;
+      border-radius: 0;
       overflow: hidden;
-      box-shadow: 0 15px 50px rgba(0, 10, 30, 0.8);
-      position: relative;
-      border: 1px solid rgba(80, 150, 255, 0.2);
       margin: 0 auto;
+      border: 1px solid rgba(100, 180, 255, 0.2);
     }
 
     .header {
-      background: linear-gradient(120deg, #00172d, #003153, #0a3366);
+      background: #0a3366;
       padding: 30px;
       text-align: center;
       position: relative;
@@ -40,41 +38,25 @@
       border-bottom: 2px solid rgba(100, 180, 255, 0.3);
     }
 
-    .header::before {
-      content: "";
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-      animation: shine 8s infinite linear;
-      transform: rotate(30deg);
-    }
-
     .logo {
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: block;
+      text-align: center;
       margin-bottom: 15px;
-      position: relative;
-      z-index: 2;
     }
 
     .logo-icon {
       font-size: 2.5rem;
       color: #f59e0b;
-      margin-right: 15px;
-      animation: pulse 2s infinite;
+      display: block;
+      margin: 0 auto 10px;
     }
 
     .logo-text {
-      font-size: 2.8rem;
+      font-size: 2.2rem;
       font-weight: 800;
-      background: linear-gradient(45deg, #f59e0b, #fbbf24, #fcd34d);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+      color: #f59e0b;
+      text-align: center;
+      display: block;
     }
 
     .tagline {
@@ -82,28 +64,21 @@
       color: #bbdefb;
       letter-spacing: 1px;
       margin-top: 5px;
-      position: relative;
-      z-index: 2;
     }
 
     .email-content {
-      padding: 30px;
-      position: relative;
+      padding: 20px;
     }
 
     .email-body {
-      position: relative;
-      z-index: 10;
-      background: rgba(15, 25, 45, 0.6);
-      border-radius: 15px;
-      padding: 30px;
+      background: #0f192d;
+      border-radius: 0;
+      padding: 20px;
       border: 1px solid rgba(100, 180, 255, 0.1);
-      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
     }
 
     .email-header {
-      display: flex;
-      align-items: center;
+      text-align: center;
       margin-bottom: 25px;
       padding-bottom: 20px;
       border-bottom: 1px solid rgba(100, 180, 255, 0.2);
@@ -113,25 +88,26 @@
       font-size: 2.5rem;
       width: 70px;
       height: 70px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: block;
+      margin: 0 auto 15px;
       border-radius: 50%;
-      margin-right: 20px;
       background: rgba(245, 158, 11, 0.2);
       color: #f59e0b;
       border: 2px solid rgba(245, 158, 11, 0.4);
+      line-height: 70px;
     }
 
     .email-title {
       font-size: 1.8rem;
       font-weight: 700;
       margin-bottom: 5px;
+      text-align: center;
     }
 
     .email-subtitle {
       color: #bbdefb;
       font-size: 1.1rem;
+      text-align: center;
     }
 
     .email-text {
@@ -153,8 +129,8 @@
     }
 
     .details-box {
-      background: rgba(10, 20, 40, 0.5);
-      border-radius: 10px;
+      background: #0a1428;
+      border-radius: 0;
       padding: 20px;
       margin: 25px 0;
       border-left: 3px solid #f59e0b;
@@ -164,18 +140,21 @@
       font-size: 1.3rem;
       margin-bottom: 15px;
       color: #f59e0b;
-      display: flex;
-      align-items: center;
+      text-align: center;
+    }
+
+    .details-title i {
+      margin-right: 10px;
     }
 
     .details-list {
       list-style-type: none;
+      width: 100%;
     }
 
     .details-list li {
       padding: 8px 0;
       border-bottom: 1px solid rgba(100, 180, 255, 0.1);
-      display: flex;
     }
 
     .details-list li:last-child {
@@ -183,58 +162,46 @@
     }
 
     .detail-label {
-      width: 180px;
       color: #90caf9;
       font-weight: 500;
+      display: block;
+      margin-bottom: 5px;
     }
 
     .detail-value {
-      flex: 1;
       color: #e3f2fd;
+      display: block;
     }
 
     .button {
-      display: inline-block;
-      background: linear-gradient(45deg, #f59e0b, #fbbf24);
+      display: block;
+      background: #f59e0b;
       color: white;
       padding: 12px 30px;
-      border-radius: 30px;
+      border-radius: 0;
       text-decoration: none;
       font-weight: 600;
-      margin: 10px 5px;
-      transition: all 0.3s ease;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
-    }
-
-    .button:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 7px 20px rgba(245, 158, 11, 0.4);
-    }
-
-    .button.secondary {
-      background: linear-gradient(45deg, #455a64, #607d8b);
+      margin: 10px auto;
+      text-align: center;
+      max-width: 300px;
     }
 
     .button-group {
-      display: flex;
-      flex-wrap: wrap;
       margin: 25px 0;
+      text-align: center;
     }
 
     .footer {
       padding: 25px;
       text-align: center;
-      background: rgba(10, 20, 40, 0.7);
+      background: #0a1428;
       color: #90a4ae;
       font-size: 0.9rem;
       border-top: 1px solid rgba(100, 180, 255, 0.1);
     }
 
     .social-links {
-      display: flex;
-      justify-content: center;
+      text-align: center;
       margin: 15px 0;
     }
 
@@ -243,143 +210,173 @@
       height: 40px;
       border-radius: 50%;
       background: rgba(100, 180, 255, 0.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: inline-block;
       margin: 0 8px;
       color: #f59e0b;
       text-decoration: none;
-      transition: all 0.3s ease;
+      line-height: 40px;
     }
 
-    .social-links a:hover {
-      background: rgba(100, 180, 255, 0.3);
-      transform: translateY(-3px);
+    .footer-logo {
+      max-width: 200px;
+      margin: 0 auto 15px;
+      display: block;
     }
 
-    @keyframes shine {
-      0% { transform: translateX(-100%) rotate(30deg); }
-      100% { transform: translateX(100%) rotate(30deg); }
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.1); opacity: 0.8; }
-      100% { transform: scale(1); opacity: 1; }
-    }
-
-    @media (max-width: 768px) {
-      .header { padding: 20px; }
-      .logo-text { font-size: 2rem; }
-      .email-content { padding: 20px; }
-      .email-body { padding: 20px; }
-      .email-header { flex-direction: column; text-align: center; }
-      .email-icon { margin-right: 0; margin-bottom: 15px; }
-      .details-list li { flex-direction: column; }
-      .detail-label { width: 100%; margin-bottom: 5px; }
-      .button-group { flex-direction: column; align-items: center; }
-      .button { width: 100%; margin: 8px 0; text-align: center; }
+    /* Responsive adjustments */
+    @media (max-width: 600px) {
+      .header {
+        padding: 20px;
+      }
+      
+      .logo-text {
+        font-size: 1.8rem;
+      }
+      
+      .email-content {
+        padding: 10px;
+      }
+      
+      .email-body {
+        padding: 15px;
+      }
+      
+      .email-icon {
+        margin: 0 auto 15px;
+      }
+      
+      .button {
+        width: 100%;
+        margin: 10px 0;
+      }
     }
   </style>
 </head>
+
 <body>
-  <table width="100%" border="0" cellspacing="0" cellpadding="0">
-    <tr>
-      <td align="center" valign="top">
-        <div class="container">
-          <div class="email-content">
-            <div class="email-body">
-              <div class="email-header">
-                <div class="email-icon">✅</div>
-                <div>
-                  <div class="email-title">Application Accepted!</div>
-                  <div class="email-subtitle">Welcome to CometJet Virtual Airlines ✈️</div>
-                </div>
-              </div>
-
-              <div class="email-text">
-                <p>Dear <span class="highlight"><%= name %></span>,</p>
-                <p>We are happy to inform you that you have been accepted as a pilot in CometJet Virtual Airlines. Congratulations! We are sure we are leaving one of our aircraft in good hands.</p>
-                <p>The application you sent made a great impression on us. Your enthusiasm and passion for aviation perfectly align with our mission to provide the highest quality virtual flying experience. We're truly excited to have you on board.</p>
-              </div>
-
-              <div class="details-box">
-                <div class="details-title">✈️ Your CometJet Assignment Details</div>
-                <p style="font-size:14px; font-weight:bold; color:#4c8bf5; text-transform:uppercase; border-bottom:2px solid #4c8bf5; display:inline-block; margin:25px 0 10px;">📋 Your registrations</p>
-                <% aircrafts.forEach((aircraft, index) => { %>
-                  <table width="100%" cellpadding="10" cellspacing="0" style="background-color:#232a47; border-left:4px solid #4c8bf5; margin-bottom:15px;">
-                    <tr>
-                      <td style="font-size:14px; line-height:1.5;">
-                        <p style="margin:5px; color:#e0e7ff;"><strong>Aircraft <%= index+1 %>:</strong> <%= aircraft.name %></p>
-                        <p style="margin:5px; color:#e0e7ff;"><strong>Registration <%= index+1 %>:</strong> <%= aircraft.registration %></p>
-                      </td>
-                    </tr>
-                  </table>
-                <% }); %>
-                <p class="email-text" style="margin-top: 15px;">
-                  ℹ️ All assigned aircraft are currently based at our main HUB, Katowice Airport (EPKT).<br>
-                  ⭐ If you have been assigned an Airbus A380, it is located at our secondary hub - London Gatwick (EGKK).
-                </p>
-              </div>
-
-              <div class="email-text">
-                <p><b>You are kindly requested to fly only your assigned aircraft using the provided registrations.</b></p>
-                <p>To begin flying and logging flights for CometJet, make sure to join our airline on Newsky:</p>
-              </div>
-
-              <div class="button-group">
-                ✨ <a href="https://newsky.app/airline/CMT/info" class="button">✈️ Join on Newsky</a>
-              </div>
-
-              <div class="email-text">
-                <p>Before your first flight, we highly recommend that you:</p>
-                <ul style="padding-left: 25px; margin: 15px 0;">
-                  <li>Read our <a href="https://comet-jet-site.vercel.app/sop.html">Standard Operating Procedures (SOP)</a></li>
-                  <li>Download the livery for your assigned aircraft - available in the <a href="https://comet-jet-site.vercel.app/livery.html">Liveries (SOP)</a> section of our website using the password: ComJetPlenCP24</li>
-                </ul>
-              </div>
-
-              <div class="details-box">
-                <div class="details-title">👨‍✈️ Pilot Portal Login</div>
-                <ul class="details-list">
-                  <li>
-                    <div class="detail-label">Login Email:</div>
-                    <div class="detail-value"><span class="highlight"><%= email %></span></div>
-                  </li>
-                  <li>
-                    <div class="detail-label">Temporary Password:</div>
-                    <div class="detail-value"><span class="highlight"><%= tempPassword %></span></div>
-                  </li>
-                </ul>
-                <p class="email-text" style="margin-top: 15px;">
-                  🔑 This is a one-time password - you will be asked to set your own password after logging in for the first time.
-                </p>
-                <div class="button-group">
-                  📱 <a href="https://comet-jet-site.vercel.app/pilot-dashboard.html" class="button">✈️ Pilot Panel</a>
-                </div>
-              </div>
-
-              <div class="email-text">
-                <p>We're thrilled to have you flying with us. If you need help or have any questions, don't hesitate to reach out via Discord or email.</p>
-                <p class="italic"><b>KayJayKay and Aviaced - CometJet VA CEOs</b></p>
-              </div>
-            </div>
+  <div class="container">
+    <div class="email-content">
+      <div class="email-body">
+        <div class="email-header">
+          <div class="email-icon">
+            <i class="fas fa-check-circle"></i>
           </div>
-
-          <div class="footer">
-            <div class="social-links">
-              <a href="https://dsc.gg/cometjet">Discord</a>
-              <a href="https://www.instagram.com/cometjet/">Instagram</a>
-              <a href="https://tiktok.com/@cometjet">TikTok</a>
-              <a href="https://www.youtube.com/@cometjet">YouTube</a>
-              <a href="https://www.facebook.com/profile.php?id=61566168421221">Facebook</a>
-            </div>
-            <a href="https://comet-jet-site.vercel.app/">CometJet Virtual Airlines</a>
-            <p>CometJet Virtual Airlines &copy; 2025</p>
+          <div>
+            <div class="email-title">Application Accepted!</div>
+            <div class="email-subtitle">Welcome to CometJet Virtual Airlines ✈️</div>
           </div>
         </div>
-      </td>
-    </tr>
-  </table>
+
+        <div class="email-text">
+          <p>Dear <span class="highlight">
+              <%= name %>
+            </span>,</p>
+
+          <p>We are happy to inform you that you have been accepted as a pilot in CometJet Virtual Airlines.
+            Congratulations! We are sure we are leaving one of our aircraft in good hands.</p>
+
+          <p>The application you sent made a great impression on us. Your enthusiasm and passion for aviation perfectly
+            align with our mission to provide the highest quality virtual flying experience. We're truly excited to have
+            you on board.</p>
+        </div>
+
+        <div class="details-box">
+          <div class="details-title">
+            <i class="fas fa-plane"></i> Your CometJet Assignment Details
+          </div>
+
+          <p style="font-size:14px; font-weight:bold; color:#f59e0b; text-transform:uppercase; border-bottom:2px solid #f59e0b; display:inline-block; margin:25px 0 10px; text-align: center;">
+            📋 Your registrations</p>
+
+          <% aircrafts.forEach((aircraft, index)=> { %>
+            <table width="100%" cellpadding="10" cellspacing="0" style="background-color:#232a47; border-left:4px solid #f59e0b; margin-bottom:15px;">
+              <tr>
+                <td style="font-size:14px; line-height:1.5;">
+                  <p style="margin:5px 0; color:#e0e7ff; text-align: center;"><strong>Aircraft <%= index+1 %>:</strong>
+                    <%= aircraft.name %>
+                  </p>
+                  <p style="margin:5px 0; color:#e0e7ff; text-align: center;"><strong>Registration <%= index+1 %>:</strong>
+                    <%= aircraft.registration %>
+                  </p>
+                </td>
+              </tr>
+            </table>
+            <% }); %>
+
+              <p class="email-text" style="margin-top: 15px; text-align: center;">
+                <i class="fas fa-info-circle"></i> All assigned aircraft are currently based at our main HUB,
+                Katowice Airport (EPKT).<br>
+                <i class="fas fa-star"></i> If you have been assigned an Airbus A380, it is located at
+                our secondary hub - London Gatwick (EGKK).
+              </p>
+        </div>
+
+        <div class="email-text">
+          <p style="text-align: center;"><b>You are kindly requested to fly only your assigned aircraft using the provided registrations.</b></p>
+
+          <p style="text-align: center;">To begin flying and logging flights for CometJet, make sure to join our airline on Newsky:</p>
+        </div>
+
+        <div class="button-group">
+          <a href="https://newsky.app/airline/CMT/info" class="button"><i class="fas fa-paper-plane"></i> Join on Newsky</a>
+        </div>
+
+        <div class="email-text">
+          <p>Before your first flight, we highly recommend that you:</p>
+          <ul style="padding-left: 25px; margin: 15px 0;">
+            <li>Read our <a href="https://comet-jet-site.vercel.app/sop.html">Standard Operating Procedures (SOP)</a></li>
+            <li>Download the livery for your assigned aircraft - available in the <a href="https://comet-jet-site.vercel.app/livery.html">Liveries (SOP)</a> section of our website using the password: ComJetPlenCP24</li>
+          </ul>
+        </div>
+
+        <div class="details-box">
+          <div class="details-title">
+            <i class="fas fa-user-astronaut"></i> Pilot Portal Login
+          </div>
+
+          <ul class="details-list">
+            <li>
+              <div class="detail-label">Login Email:</div>
+              <div class="detail-value"><span class="highlight">
+                  <%= email %>
+                </span></div>
+            </li>
+            <li>
+              <div class="detail-label">Temporary Password:</div>
+              <div class="detail-value"><span class="highlight">
+                  <%= tempPassword %>
+                </span></div>
+            </li>
+          </ul>
+
+          <p class="email-text" style="margin-top: 15px; text-align: center;">
+            <i class="fas fa-key"></i> This is a one-time password - you will be asked to set your own password after logging in.
+          </p>
+          <div class="button-group">
+            <a href="https://comet-jet-site.vercel.app/pilot-dashboard.html" class="button"><i class="fas fa-paper-plane"></i> Pilot Panel</a>
+          </div>
+        </div>
+
+        <div class="email-text">
+          <p>We're thrilled to have you flying with us. If you need help or have any questions, don't hesitate to reach
+            out via Discord or email.</p>
+
+          <p style="text-align: center; font-style: italic;"><b>KayJayKay and Aviaced - CometJet VA CEOs</b></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="social-links">
+        <a href="https://dsc.gg/cometjet">D</a>
+        <a href="https://www.instagram.com/cometjet/">I</a>
+        <a href="https://tiktok.com/@cometjet">C</a>
+        <a href="https://www.youtube.com/@cometjet">K</a>
+        <a href="https://www.facebook.com/profile.php?id=61566168421221">!</a>
+      </div>
+      <img src="https://comet-jet-site.vercel.app/logo.png" alt="CometJet Logo" class="footer-logo">
+      <p>CometJet Virtual Airlines &copy; 2025</p>
+    </div>
+  </div>
 </body>
 </html>
